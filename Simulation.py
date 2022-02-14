@@ -1,78 +1,5 @@
 import numpy as np
-import math
-
-# Holds x, y, and theta position. supports equality; set(x,y); set(point); distance(point)
-class Point():
-    def __init__(self, x, y, theta):
-        self.x = x
-        self.y = y
-        self.theta = theta
-
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.theta = 0
-
-    def __init__(self, point):
-        self.x = point.x
-        self.y = point.y
-        self.theta = point.theta
-
-    def __eq__(self, point):
-        return self.x == point.x and self.y == point.y and self.theta == point.theta
-
-    def set(self, x, y, theta):
-        self.x = x
-        self.y = y
-        self.theta = theta
-
-    def set(self, x, y):
-        self.x = x
-        self.y = y
-
-    def set(self, point):
-        self.x = point.x
-        self.y = point.y
-        self.theta = point.theta
-
-    def distance(self, point):
-        return math.sqrt((self.x - point.x) ** 2 + (self.y - point.y) ** 2)
-
-class Graph():
-    def __init__(self):
-        self.graph = []
-
-    def add_node(self, node):
-        self.graph.append(node)
-
-    def add_node(self, node, index):
-        self.graph.insert(index, node)
-
-class Node():
-    def __init__(self, point, edges):
-        self.pos = point
-        self.edges = edges
-
-    def __init__(self, point):
-        self.pos = point
-        self.edges = []
-
-    def add_edge(self, edge):
-        self.edges.append(edge)
-
-class Edge():
-    def __init__(self, node_1_index, node_2_index, distance, active):
-        self.node_1_index = node_1_index
-        self.node_2_index = node_2_index
-        self.weight = distance
-        self.active = active
-
-    def set(self, node_1_index, node_2_index, distance, active):
-        self.node_1_index = node_1_index
-        self.node_2_index = node_2_index
-        self.weight = distance
-        self.active = active
-
+from graph import Graph, Edge, Node, Point
 
 class Simulation():
     def __init__(self, p_start, p_goal, obstacles):
@@ -89,21 +16,26 @@ class Simulation():
         # (x,y,data) first element is obstacle T/F, second is confidence (T-known or F-unknown). initializes to free and unknown.
         self.occupancy_grid = np.full((30,30,2), False) 
         self.graph = Graph()
+        
+        self.goal_node = Node(self.p_goal.x, self.p_goal.y)
+        self.graph.add_node(self.goal_node)
+        
         self.path = None
-
 
     # Returns T/F whether or not an initial graph was found
     def graph_creation(self):
-        self.graph.add_node(Node(self.p_robot), 0)
+        self.start_node = Node(self.p_robot.x, self.p_robot.y)
+        self.graph.add_node(self.start_node)
         # Initial graph formulation
         i = 0
-        while path is None and i < self.max_iterations:
-            path = [Point(2,5), Point(12,5)]
-
+        while self.path is None and i < self.max_iterations:
+            # check if a path reaches goal
+            self.path = self.graph.find_shortest_path(self.start_node, self.goal_node)
+            
             i += 1
         
         # No path was found in our maximum allowed iterations
-        if path is None:
+        if self.path is None:
             print('No path was found in', self.max_iterations, 'iterations.')
             return False
 
