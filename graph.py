@@ -1,5 +1,10 @@
+from curses import echo
 import math
 import random
+from re import X
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # Holds x, y, and theta position. supports equality; set(x,y); set(point); distance(point)
 class Point():        
@@ -67,7 +72,20 @@ class Graph():
     
     def get_node(self, index):
         return self.graph[index]
-
+    
+    def display(self):
+        l = [[n.pos.x, n.pos.y] for n in self.graph]
+        df = pd.DataFrame(l, columns=['x', 'y'])
+        
+        grid = sns.JointGrid(df['x'], df['y'], space=0, size=6, ratio=50)
+        grid.plot_joint(plt.scatter, color="g")
+        for n in self.graph:
+            for e in n.edges:
+                n2 = self.graph[e.node_2_index]
+                plt.plot([n.pos.x, n2.pos.x], [n.pos.y, n2.pos.y], linewidth=1, color='b')
+                
+        plt.show()
+    
     def generate_exploratory_node(self, start_node, goal_node):
         # consider idea of how many bits do you need to know where you are in the environemnt based on 
         # where the points are (aka, if you only have 2 points, you wouldnt know where you were in all the empty areas because
@@ -90,7 +108,6 @@ class Graph():
     def new_point_direction(self, node, goal_node):
         x = 0.0
         y = 0.0
-        print(node)
         # force away from other points
         for n in self.graph:
             x_dir = node.pos.x - n.pos.x
@@ -110,7 +127,7 @@ class Graph():
         # force towards goal
         x_dir = goal_node.pos.x - node.pos.x
         y_dir = goal_node.pos.y - node.pos.y
-        print(x_dir, y_dir)
+        
         mag = math.sqrt(x_dir ** 2 + y_dir ** 2)
         if mag != 0:
             x_dir /= mag
