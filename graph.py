@@ -77,7 +77,7 @@ class Graph():
         l = [[n.pos.x, n.pos.y] for n in self.graph]
         df = pd.DataFrame(l, columns=['x', 'y'])
         
-        grid = sns.JointGrid(df['x'], df['y'], space=0, size=6, ratio=50)
+        grid = sns.JointGrid(df['x'], df['y'], space=0, height=6, ratio=50)
         grid.plot_joint(plt.scatter, color="g")
         for n in self.graph:
             for e in n.edges:
@@ -93,21 +93,26 @@ class Graph():
         # node_list, visited = self.dijkstras(starting_node, goal_node, True)
         
         # order nodes by distance
-        distances = [[node.index, 1 / (len(node.edges) + 1)] for node in self.graph]
-        #sorted(distances, key=lambda x: x[1], reverse=True) # sort from 
+        distances = [[node.index, 1 / (len(node.edges) + 1) + 1 / (node.distance(goal_node) + 1)] for node in self.graph]
         distances[goal_node.index][1] = 0
+        #distances = sorted(distances, key=lambda x: x[1], reverse=True) # sort in reverse order
         # weighted choice with node
         weights = [x[1] for x in distances]
-        node = self.graph[random.choices(distances, weights=tuple(weights), k=1)[0][0]]
+        node = self.graph[random.choices(distances, weights=tuple(weights), k=1)[0][0]]#self.graph[distances[0][0]]#
         
         x,y = self.new_point_direction(node, goal_node)
-        mag = random.random() * self.connection_radius / 2 + self.connection_radius / 2
-        return Node(Point(node.pos.x + x * mag, node.pos.y + y * mag, node.pos.theta + random.random() / 2 - 0.25))
+        mag = math.sqrt(x ** 2 + y ** 2)
+        if mag > self.connection_radius:
+            x /= mag
+            x *= self.connection_radius * 0.99
+            y /= mag
+            y *= self.connection_radius * 0.99
+        return Node(Point(node.pos.x + x, node.pos.y + y, node.pos.theta + random.random() / 2 - 0.25))
       
     # gross clean up later  
     def new_point_direction(self, node, goal_node):
-        x = 0.0
-        y = 0.0
+        x = random.random() * 100 - 50
+        y = random.random() * 100 - 50
         # force away from other points
         for n in self.graph:
             x_dir = node.pos.x - n.pos.x
@@ -141,9 +146,6 @@ class Graph():
         mag = math.sqrt(x ** 2 + y ** 2)
         if mag == 0:
             x += 1
-        else:
-            x /= mag
-            y /= mag
         
         return x,y
         
