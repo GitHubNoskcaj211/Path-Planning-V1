@@ -5,7 +5,7 @@ import time
 class Simulation():
     def __init__(self, p_start, p_goal, obstacles):
         # Parameters
-        self.max_iterations = 400 # max iterations (number of points) to attempt initial graph creation
+        self.max_iterations = 5 # max iterations (number of points) to attempt initial graph creation
         self.sensor_theta = 0.78 # the sensing arc angle in radians
         self.sensor_max_distance = 3 #the sensing distance
 
@@ -39,7 +39,7 @@ class Simulation():
             
             # check if a path reaches goal
             self.path = self.graph.find_shortest_path(self.start_node, self.goal_node)
-            sim.graph.display()
+            
             i += 1
         
         # No path was found in our maximum allowed iterations
@@ -71,7 +71,7 @@ sim = Simulation(p_start, p_goal, obstacles)
 
 sim.graph_creation()
 print('Num Points:', len(sim.graph.graph))
-
+sim.graph.display()
 
 # while the sim has a path and it hasn't finished the path
 # while sim.path is not None and len(sim.path.path) != 0:

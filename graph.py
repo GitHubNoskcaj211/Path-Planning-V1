@@ -1,10 +1,25 @@
-from curses import echo
+from cmath import inf
 import math
 import random
 from re import X
+from tracemalloc import start
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+
+class Vector():
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+    
+    def angle_between_vectors(self, vector):
+        return math.acos(self.dot(vector) / (self.magnitude() * vector.magnitude()))
+        
+    def dot(self, vector):
+        return self.x * vector.x + self.y * vector.y    
+    
+    def magnitude(self):
+        return math.sqrt(self.x ** 2 + self.y ** 2)        
 
 # Holds x, y, and theta position. supports equality; set(x,y); set(point); distance(point)
 class Point():        
@@ -77,42 +92,84 @@ class Graph():
         l = [[n.pos.x, n.pos.y] for n in self.graph]
         df = pd.DataFrame(l, columns=['x', 'y'])
         
-        grid = sns.JointGrid(df['x'], df['y'], space=0, height=6, ratio=50)
+        grid = sns.JointGrid(df['x'], df['y'], space=0, height=3, ratio=50)
         grid.plot_joint(plt.scatter, color="g")
         for n in self.graph:
             for e in n.edges:
                 n2 = self.graph[e.node_2_index]
-                plt.plot([n.pos.x, n2.pos.x], [n.pos.y, n2.pos.y], linewidth=1, color='b')
+                plt.plot([n.pos.x, n2.pos.x], [n.pos.y, n2.pos.y], linewidth=0.1, color='b')
                 
         plt.show()
+        
+    def max_edge_angle(self, node):
+        if len(node.edges) == 0:
+            return math.pi
+        
+        max_angle_between_vectors = 0
+        for e in node.edges:
+            n2 = self.graph[e.node_2_index]
+            v1 = Vector(n2.pos.x - node.pos.x, n2.pos.y - node.pos.y)
+            closest_angle_between_vectors = math.pi
+            for e2 in node.edges:
+                if not e == e2: # if the edges are distinct
+                    n3 = self.graph[e2.node_2_index]
+                    v2 = Vector(n3.pos.x - node.pos.x, n3.pos.y - node.pos.y)
+                    new_angle = v1.angle_between_vectors(v2)
+                    if new_angle < closest_angle_between_vectors:
+                        closest_angle_between_vectors = new_angle
+            if closest_angle_between_vectors > max_angle_between_vectors:
+                max_angle_between_vectors = closest_angle_between_vectors
+                
+        return max_angle_between_vectors
+            
     
     def generate_exploratory_node(self, start_node, goal_node):
         # consider idea of how many bits do you need to know where you are in the environemnt based on 
         # where the points are (aka, if you only have 2 points, you wouldnt know where you were in all the empty areas because
         # you have nothing to go off of)
-        # node_list, visited = self.dijkstras(starting_node, goal_node, True)
+        node_list, visited = self.dijkstras(start_node, goal_node, False)
+        
+        # get the indexes of the leafs of the tree
+        leaf_list = []
+        for i in range(len(node_list)):
+            is_parent = False
+            for n in node_list:
+                if n[1] == i: # n has i as a parent
+                    is_parent = True
+                    break
+            if not is_parent:
+                leaf_list.append(i)
+        
+        # how much do we care about information (prop to distance to goal). How much information do we have
+        # how much information we have TODO idea -> inactive edges are high information, active edges are lower
+        # max angle between all the edges connecting in OR avereage of angle between edges connecting
+        # big angle and close distance means select
+        scores = [[leaf, 1 / (self.graph[i].distance(goal_node) + 1) * self.max_edge_angle(self.graph[i])] for leaf in leaf_list]
+        scores = sorted(scores, key=lambda x: x[1])
+        node = self.graph[scores[0][0]]
         
         # order nodes by distance
-        distances = [[node.index, 1 / (len(node.edges) + 1) + 1 / (node.distance(goal_node) + 1)] for node in self.graph]
-        distances[goal_node.index][1] = 0
-        #distances = sorted(distances, key=lambda x: x[1], reverse=True) # sort in reverse order
+        #distances = [[node.index, 1 / (len(node.edges) + 1) + 1 / (node.distance(goal_node) + 1)] for node in self.graph]
+        #   distances = [[node.index, (len(node.edges) + 1) * (node.distance(goal_node) + 1)] for node in self.graph]
+        #   distances[goal_node.index][1] = inf
+        #   distances = sorted(distances, key=lambda x: x[1]) # sort in reverse order
         # weighted choice with node
-        weights = [x[1] for x in distances]
-        node = self.graph[random.choices(distances, weights=tuple(weights), k=1)[0][0]]#self.graph[distances[0][0]]#
+        #weights = [x[1] for x in distances]
+        #   node = self.graph[distances[0][0]]#self.graph[random.choices(distances, weights=tuple(weights), k=1)[0][0]]#
         
         x,y = self.new_point_direction(node, goal_node)
         mag = math.sqrt(x ** 2 + y ** 2)
         if mag > self.connection_radius:
             x /= mag
-            x *= self.connection_radius * 0.99
+            x *= random.random() * self.connection_radius * 0.99
             y /= mag
-            y *= self.connection_radius * 0.99
+            y *= random.random() * self.connection_radius * 0.99
         return Node(Point(node.pos.x + x, node.pos.y + y, node.pos.theta + random.random() / 2 - 0.25))
       
     # gross clean up later  
     def new_point_direction(self, node, goal_node):
-        x = random.random() * 100 - 50
-        y = random.random() * 100 - 50
+        x = 0#random.random() * 100 - 50
+        y = 0#random.random() * 100 - 50
         # force away from other points
         for n in self.graph:
             x_dir = node.pos.x - n.pos.x
@@ -133,6 +190,9 @@ class Graph():
         x_dir = goal_node.pos.x - node.pos.x
         y_dir = goal_node.pos.y - node.pos.y
         
+        x_dir += random.random() * x_dir / 4 - x_dir / 8
+        y_dir += random.random() * y_dir / 4 - y_dir / 8
+        
         mag = math.sqrt(x_dir ** 2 + y_dir ** 2)
         if mag != 0:
             x_dir /= mag
@@ -151,7 +211,7 @@ class Graph():
         
     # gross clean up later
     # if a goal node is denoted, it will run the modified a_star encoding
-    def dijkstras(self, starting_node, goal_node):
+    def dijkstras(self, starting_node, goal_node, stop_early):
         starting_node_index = starting_node.index
         num_nodes = len(self.graph)
         node_list = [[None, None] for i in range(num_nodes)] #current weight number, and what parent it has in the tree. Both initialize to None
@@ -160,7 +220,7 @@ class Graph():
         
         # if we are in a_star mode, continue until all possible nodes are searched. Otherwise, end when
         # goal is reached
-        while not visited[goal_node.index]:           
+        while not visited[goal_node.index] or not stop_early:           
             # get the smallest node to connect in
             smallest_pos = -1
             for i in range(len(node_list)):
@@ -186,7 +246,7 @@ class Graph():
         
     # given a starting node and goal node of the graph, return a Path (if one exists)
     def find_shortest_path(self, starting_node, goal_node):
-        node_list, visited = self.dijkstras(starting_node, goal_node)
+        node_list, visited = self.dijkstras(starting_node, goal_node, True)
         goal_node_index = goal_node.index
         
         if not visited[goal_node_index]:
@@ -242,6 +302,9 @@ class Edge():
         
     def __str__(self):
         return '(' + str(self.node_2_index) + ',' + str(self.weight) + ',' + str(self.active) + ')'
+    
+    def __eq__(self, edge):
+        return self.node_1_index == edge.node_1_index and self.node_2_index == edge.node_2_index
         
         
 # testing path creation
