@@ -39,7 +39,7 @@ class Simulation():
             
             # check if a path reaches goal
             self.path = self.graph.find_shortest_path(self.start_node, self.goal_node)
-            
+            #sim.graph.display()
             i += 1
         
         # No path was found in our maximum allowed iterations
