@@ -132,6 +132,9 @@ class Graph():
         # get the indexes of the leafs of the tree
         leaf_list = []
         for i in range(len(node_list)):
+            if not visited[i]:
+                continue
+            
             is_parent = False
             for n in node_list:
                 if n[1] == i: # n has i as a parent
@@ -139,15 +142,15 @@ class Graph():
                     break
             if not is_parent:
                 leaf_list.append(i)
-        
+        print(leaf_list)
         # how much do we care about information (prop to distance to goal). How much information do we have
         # how much information we have TODO idea -> inactive edges are high information, active edges are lower
         # max angle between all the edges connecting in OR avereage of angle between edges connecting
         # big angle and close distance means select
-        scores = [[leaf, 1 / (self.graph[i].distance(goal_node) + 1) * self.max_edge_angle(self.graph[i])] for leaf in leaf_list]
+        scores = [[leaf, 1 / (self.graph[leaf].distance(goal_node) + 1) * self.max_edge_angle(self.graph[leaf])] for leaf in leaf_list]
         scores = sorted(scores, key=lambda x: x[1])
         node = self.graph[scores[0][0]]
-        
+        print(node)
         # order nodes by distance
         #distances = [[node.index, 1 / (len(node.edges) + 1) + 1 / (node.distance(goal_node) + 1)] for node in self.graph]
         #   distances = [[node.index, (len(node.edges) + 1) * (node.distance(goal_node) + 1)] for node in self.graph]
@@ -211,20 +214,20 @@ class Graph():
         
     # gross clean up later
     # if a goal node is denoted, it will run the modified a_star encoding
-    def dijkstras(self, starting_node, goal_node, stop_early):
+    def dijkstras(self, starting_node, goal_node, a_star):
         starting_node_index = starting_node.index
         num_nodes = len(self.graph)
-        node_list = [[None, None] for i in range(num_nodes)] #current weight number, and what parent it has in the tree. Both initialize to None
+        node_list = [[None, None, self.graph[i].distance(goal_node)] for i in range(num_nodes)] #current weight number, and what parent it has in the tree, distance from goal. First two initialize to None
         node_list[starting_node_index][0] = 0
         visited = [False] * num_nodes
         
         # if we are in a_star mode, continue until all possible nodes are searched. Otherwise, end when
         # goal is reached
-        while not visited[goal_node.index] or not stop_early:           
+        while not visited[goal_node.index] or a_star:           
             # get the smallest node to connect in
             smallest_pos = -1
             for i in range(len(node_list)):
-                if not visited[i] and node_list[i][0] != None and (smallest_pos == -1 or node_list[i][0] < node_list[smallest_pos][0]):
+                if not visited[i] and node_list[i][0] != None and (smallest_pos == -1 or node_list[i][0] + (node_list[i][2] if a_star else 0) < node_list[smallest_pos][0] + (node_list[smallest_pos][2] if a_star else 0)):
                     smallest_pos = i
             
             # check if we didn't find anything (visited all nodes possible)
@@ -234,7 +237,7 @@ class Graph():
             # at this point we need to connect in smallest_pos
             for edge in self.graph[smallest_pos].edges:
                 if edge.active and not visited[edge.node_2_index]:
-                    new_weight = node_list[smallest_pos][0] + edge.weight
+                    new_weight = node_list[smallest_pos][0] + edge.weight 
                     old_weight = node_list[edge.node_2_index][0]
                     if old_weight == None or new_weight < old_weight:
                         node_list[edge.node_2_index][0] = new_weight
@@ -246,7 +249,7 @@ class Graph():
         
     # given a starting node and goal node of the graph, return a Path (if one exists)
     def find_shortest_path(self, starting_node, goal_node):
-        node_list, visited = self.dijkstras(starting_node, goal_node, True)
+        node_list, visited = self.dijkstras(starting_node, goal_node, False)
         goal_node_index = goal_node.index
         
         if not visited[goal_node_index]:
