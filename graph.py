@@ -187,6 +187,14 @@ class Graph():
             x *= new_mag
             y *= new_mag
         return Node(Point(node.pos.x + x, node.pos.y + y, node.pos.theta + random.random() / 2 - 0.25))
+    
+    # gross clean up later  
+    def new_point_direction(self, node, goal_node):
+        new_x = 0
+        new_y = 0
+        
+        
+        return Node(Point(new_x, new_y))
       
     # gross clean up later  
     def new_point_direction(self, node, goal_node):
