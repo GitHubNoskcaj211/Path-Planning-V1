@@ -18,11 +18,36 @@ class Vector():
     def dot(self, vector):
         return self.x * vector.x + self.y * vector.y    
     
+    def subtract(self, vector):
+        return Vector(self.x - vector.x, self.y - vector.y)
+    
+    def calc_information_vector(self, vector, angle_between):
+        # calculating on the wrong side of information gain
+        if angle_between > math.pi:
+            return 0
+        
+        information = 0
+        # guarenteed triangle area
+        l1 = self.magnitude()
+        l2 = vector.magnitude()
+        smaller_l1 = l1 / 2
+        smaller_l2 = l2 / 2
+        bisected_angle = angle_between / 2
+        # can throw an exception
+        angle_bisector_length = smaller_l1 * smaller_l2 * math.sin(angle_between) / (smaller_l1 * math.sin(bisected_angle) + smaller_l2 * math.sin(bisected_angle))
+        
+        information = 1/2 * l1 * angle_bisector_length * math.sin(bisected_angle) + 1/2 * l2 * angle_bisector_length * math.sin(bisected_angle)
+        
+        return information
+    
+    def distance(self, vector):
+        return math.sqrt((self.x - vector.x) ** 2 + (self.y - vector.y) ** 2)
+        
     def magnitude(self):
         return math.sqrt(self.x ** 2 + self.y ** 2)
     
     def theta(self):
-        return math.atan2(self.x, self.y)   
+        return math.atan2(self.x, self.y)
 
 # Holds x, y, and theta position. supports equality; set(x,y); set(point); distance(point)
 class Point():        
@@ -103,6 +128,27 @@ class Graph():
                 plt.plot([n.pos.x, n2.pos.x], [n.pos.y, n2.pos.y], linewidth=0.1, color='b')
                 
         plt.show()
+    
+    # reports the amount of information covered (as a percentage) in a specific node with its connections
+    # returns the percent coverage (out of 1)
+    def information_coverage_calc(self, node):
+        if len(node.edges) == 0:
+            return 0
+        
+        # consider making this case different
+        if len(node.edges) == 1:
+            return 0
+        
+        max_information = math.pi * self.connection_radius ** 2
+        angles = [[e, e.vector.theta()] for e in node.edges] # [edge (obj), theta of the edge]
+        angles = sorted(angles, key=lambda x: x[1])
+        
+        total_information = 0
+        total_information += angles[-1][0].vector.calc_information_vector(angles[0][0].vector, 2 * math.pi - (angles[-1][1] - angles[0][1])) # check the boundary (last minus first) first
+        for i in range(len(angles)-1):
+            total_information += angles[i+1][0].vector.calc_information_vector(angles[i][0].vector, (angles[i+1][1] - angles[i][1])) # check the boundary (last minus first) first
+            
+        return total_information / max_information
         
     def max_edge_angle(self, node):
         if len(node.edges) == 0:
@@ -113,38 +159,20 @@ class Graph():
         
         angles = [[e, e.vector.theta()] for e in node.edges] # [edge (obj), theta of the edge]
         angles = sorted(angles, key=lambda x: x[1])
-        print(angles)
         max_angle = 2 * math.pi - (angles[-1][1] - angles[0][1]) # check the boundary (last minus first) first
         for i in range(len(angles)-1):
             if angles[i+1][1] - angles[i][1] > max_angle:
                 max_angle = angles[i+1][1] - angles[i][1]
         print(max_angle)
         return max_angle
-    
-        # max_angle_between_vectors = 0
-        # for e in node.edges:
-        #     n2 = e.node2
-        #     v1 = Vector(n2.pos.x - node.pos.x, n2.pos.y - node.pos.y)
-        #     closest_angle_between_vectors = [math.pi * 2, math.pi * 2]
-        #     for e2 in node.edges:
-        #         if not e == e2: # if the edges are distinct
-        #             n3 = e2.node2
-        #             v2 = Vector(n3.pos.x - node.pos.x, n3.pos.y - node.pos.y)
-        #             new_angle = v1.angle_between_vectors(v2)
-        #             if new_angle < max():
-        #                 closest_angle_between_vectors = new_angle
-        #     if closest_angle_between_vectors > max_angle_between_vectors:
-        #         max_angle_between_vectors = closest_angle_between_vectors
-                
-        # return max_angle_between_vectors
             
-    
     def generate_exploratory_node(self, start_node, goal_node):
         # consider idea of how many bits do you need to know where you are in the environemnt based on 
         # where the points are (aka, if you only have 2 points, you wouldnt know where you were in all the empty areas because
         # you have nothing to go off of)
         node_list, visited = self.dijkstras(start_node, goal_node, False)
         print(node_list)
+        
         # get the indexes of the leafs of the tree
         leaf_list = []
         for i in range(len(node_list)):
@@ -159,86 +187,99 @@ class Graph():
             if not is_parent:
                 leaf_list.append(i)
         print(leaf_list)
-        # how much do we care about information (prop to distance to goal). How much information do we have
-        # how much information we have TODO idea -> inactive edges are high information, active edges are lower
-        # max angle between all the edges connecting in OR avereage of angle between edges connecting
-        # big angle and close distance means select
-        scores = [[leaf, 1 / (self.graph[leaf].distance(goal_node) + node_list[leaf][0]) * self.max_edge_angle(self.graph[leaf])] for leaf in leaf_list]
+        
+        scores = [[leaf, 1 / (self.graph[leaf].distance(goal_node) + node_list[leaf][0]) * self.information_coverage_calc(self.graph[leaf])] for leaf in leaf_list]
         scores = sorted(scores, key=lambda x: x[1], reverse=True)
         node = self.graph[scores[0][0]]
         print(node)
-        # order nodes by distance
-        #distances = [[node.index, 1 / (len(node.edges) + 1) + 1 / (node.distance(goal_node) + 1)] for node in self.graph]
-        #   distances = [[node.index, (len(node.edges) + 1) * (node.distance(goal_node) + 1)] for node in self.graph]
-        #   distances[goal_node.index][1] = inf
-        #   distances = sorted(distances, key=lambda x: x[1]) # sort in reverse order
-        # weighted choice with node
-        #weights = [x[1] for x in distances]
-        #   node = self.graph[distances[0][0]]#self.graph[random.choices(distances, weights=tuple(weights), k=1)[0][0]]#
         
-        x,y = self.new_point_direction(node, goal_node)
-        
-        mag = math.sqrt(x ** 2 + y ** 2)
-        if mag > self.connection_radius:
-            x /= mag
-            y /= mag
-            print('dir', x, y)
-            new_mag = random.random() * self.connection_radius * 0.99
-            x *= new_mag
-            y *= new_mag
-        return Node(Point(node.pos.x + x, node.pos.y + y, node.pos.theta + random.random() / 2 - 0.25))
+        return self.new_node(node, goal_node)
     
     # gross clean up later  
-    def new_point_direction(self, node, goal_node):
-        new_x = 0
-        new_y = 0
+    def new_node(self, node, goal_node):
+        if len(node.edges) == 0:
+            max_r = self.connection_radius
+            min_r = self.connection_radius / 2
+            mag = random.random() * (max_r - min_r) + min_r
+            print(mag)
+            theta = math.atan2(goal_node.pos.y - node.pos.y, goal_node.pos.x - node.pos.x)
+            print(theta)
+            return Node(Point(mag * math.cos(theta) + node.pos.x, mag * math.sin(theta) + node.pos.y))
         
+        # discretize into every 1 degree
+        angles = [i / 180 * math.pi for i in range(-180,180)]
+        edges = [[e, e.vector.theta()] for e in node.edges] # [edge (obj), theta of the edge]
+        print(edges)
+        # copy the last vector before and the first vector after but looping the angles
+        copied_e1 = edges[-1].copy()
+        copied_e1[1] -= math.pi * 2
+        copied_e2 = edges[0].copy()
+        copied_e2[1] = copied_e2[1] + math.pi * 2
+        edges.insert(0, copied_e1)
+        edges.append(copied_e2)
         
-        return Node(Point(new_x, new_y))
-      
-    # gross clean up later  
-    def new_point_direction(self, node, goal_node):
-        x = 0#random.random() * 100 - 50
-        y = 0#random.random() * 100 - 50
-        # force away from other points it is connected to
-        for e in node.edges:
-            n = e.node2
-            x_dir = node.pos.x - n.pos.x
-            y_dir = node.pos.y - n.pos.y
-            mag = math.sqrt(x_dir ** 2 + y_dir ** 2)
-            if mag == 0:
-                continue
-            
-            x_dir /= mag
-            y_dir /= mag
-            
-            force = 1 / node.distance(n) ** 2
-            
-            x += force * x_dir
-            y += force * y_dir
+        max_score = 0
+        max_score_node = None
         
-        # force towards goal
-        x_dir = goal_node.pos.x - node.pos.x
-        y_dir = goal_node.pos.y - node.pos.y
-        
-        x_dir += random.random() * x_dir *5#/ 4 - x_dir / 8
-        y_dir += random.random() * y_dir *5#/ 4 - y_dir / 8
-        
-        mag = math.sqrt(x_dir ** 2 + y_dir ** 2)
-        if mag != 0:
-            x_dir /= mag
-            y_dir /= mag
+        v1_pos = 0
+        v2_pos = 1
+        edges = sorted(edges, key=lambda x: x[1])
+        for theta in angles:
+            if theta > edges[v2_pos][1]:
+                v1_pos += 1
+                v2_pos += 1
             
-            force = node.distance(goal_node) ** 2
+            angle_between_old = edges[v2_pos][1] - edges[v1_pos][1]
+            if angle_between_old == 0 or angle_between_old >= math.pi:
+                old_information = 0
+                min_r = self.connection_radius / 2
+            else:
+                old_information = edges[v1_pos][0].vector.calc_information_vector(edges[v2_pos][0].vector, angle_between_old)
+                # get new average point vector
+                l1 = edges[v1_pos][0].vector.magnitude()
+                t1 = edges[v1_pos][1]
+                l2 = edges[v2_pos][0].vector.magnitude()
+                t2 = edges[v2_pos][1]
+                x1 = l1 * math.cos(t1)
+                y1 = l1 * math.sin(t1)
+                x2 = l2 * math.cos(t2)
+                y2 = l2 * math.sin(t2)
+                if x2 - x1 == 0:
+                    print('division by 0!!!!!')
+                    continue
+                m = (y2 - y1) / (x2 - x1)
+                min_r = (y1 - m * x1) / (math.sin(theta) - m * math.cos(theta))
             
-            x += force * x_dir
-            y += force * y_dir
+            max_r = self.connection_radius
+            average_r = (min_r + max_r) / 2
+            avg_new_vector = Vector(average_r * math.cos(theta), average_r * math.sin(theta))\
             
-        mag = math.sqrt(x ** 2 + y ** 2)
-        if mag == 0:
-            x += 1
-        
-        return x,y
+            
+            new_information = 0
+            angle_between_new1 = theta - edges[v1_pos][1]
+            if angle_between_new1 == 0 or angle_between_new1 >= math.pi:
+                new_information += 0
+            else:
+                new_information += edges[v1_pos][0].vector.calc_information_vector(avg_new_vector, angle_between_new1)
+            
+            angle_between_new2 = edges[v2_pos][1] - theta
+            if angle_between_new2 == 0 or angle_between_new2 >= math.pi:
+                new_information += 0
+            else:
+                new_information += avg_new_vector.calc_information_vector(edges[v2_pos][0].vector, angle_between_new2)
+            
+            delta_information = new_information - old_information
+            score = delta_information * 1 / (avg_new_vector.distance(goal_node.pos) + 1)
+            print('theta',theta,'info gain',delta_information,'score',score)
+            if delta_information < 0:
+                print("BAD!")
+                
+            if score > max_score:
+                max_score = score
+                mag = random.random() * (max_r - min_r) + min_r
+                max_score_node = Node(Point(mag * math.cos(theta) + node.pos.x, mag * math.sin(theta) + node.pos.y))
+            
+        return max_score_node
         
     # gross clean up later
     # if a goal node is denoted, it will run the modified a_star encoding
@@ -328,6 +369,7 @@ class Edge():
 
     def set(self, active):
         self.active = active
+        
         
     def __str__(self):
         return '(' + str(self.node1.index) + ' to ' + str(self.node2.index) + ',' + str(self.weight) + ',' + str(self.active) + ')'
