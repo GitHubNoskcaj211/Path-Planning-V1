@@ -1,5 +1,6 @@
 import math
 import random
+from re import L
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,6 +16,9 @@ class Point():
     
     def __str__(self):
         return str(self.x) + ' ' + str(self.y) + ' ' + str(self.theta)
+    
+    def get_angle_towards(self, point):
+        return math.atan2(point.pos.y - self.pos.y, point.pos.x - self.pos.x)
 
     def distance(self, point):
         return math.sqrt((self.x - point.x) ** 2 + (self.y - point.y) ** 2)
@@ -49,6 +53,8 @@ class Tree():
         self.world_y_min = 0
         self.world_y_max = 10
         
+        self.goal_node = None
+        
         self.add_node(Node(Point(start_x, start_y), 0))
         
     def display(self):
@@ -61,16 +67,28 @@ class Tree():
             for child in n.children:
                 #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
                 plt.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
-                
+        
         plt.show()
         
     def get_path_to_goal(self):
-        pass
-        # TODO
+        if self.goal_node == None:
+            return None
+        else:
+            path_list = []
+            n = self.goal_node
+            while n.parent != None:
+                path_list.insert(0, n.pos)
+                n = n.parent
+                
+            return path_list
         
     def add_goal_node(self, goal_x, goal_y):
-        pass
-        # TODO
+        goal_node = Node(Point(goal_x, goal_y))
+        if self.add_node_to_tree(self.goal_node):
+            self.goal_node = goal_node
+            return True
+        else:
+            return False
         
     # build the rrt tree
     def build_tree(self, occupancy_grid, iterations):
