@@ -1,9 +1,6 @@
 import math
 import random
-from re import L
-import seaborn as sns
 import matplotlib.pyplot as plt
-import pandas as pd
 
 class Point():        
     def __init__(self, x, y, theta = 0):
@@ -17,8 +14,16 @@ class Point():
     def __str__(self):
         return str(self.x) + ' ' + str(self.y) + ' ' + str(self.theta)
     
+    def add(self, point):
+        self.x += point.x
+        self.y += point.y
+        self.theta += point.theta
+        
+    def mag(self):
+        return math.sqrt((self.x) ** 2 + (self.y) ** 2)
+    
     def get_angle_towards(self, point):
-        return math.atan2(point.pos.y - self.pos.y, point.pos.x - self.pos.x)
+        return math.atan2(point.y - self.y, point.x - self.x)
 
     def distance(self, point):
         return math.sqrt((self.x - point.x) ** 2 + (self.y - point.y) ** 2)
@@ -42,33 +47,37 @@ class Node():
         return self.pos.distance(node2.pos)
 
 class Tree():
-    def __init__(self, start_x, start_y, radius):
+    def __init__(self, start, radius, world_bounds):
         self.nodes = []
         self.occupancy_grid = None
         
         self.radius = radius
         
-        self.world_x_min = 0
-        self.world_x_max = 10
-        self.world_y_min = 0
-        self.world_y_max = 10
+        self.world_x_min = world_bounds[0]
+        self.world_x_max = world_bounds[2]
+        self.world_y_min = world_bounds[1]
+        self.world_y_max = world_bounds[3]
         
         self.goal_node = None
         
-        self.add_node(Node(Point(start_x, start_y), 0))
+        self.add_node(Node(Point(start[0], start[1]), 0))
         
-    def display(self):
-        l = [[n.pos.x, n.pos.y] for n in self.nodes]
-        df = pd.DataFrame(l, columns=['x', 'y'])
+    def display(self, ax):
+        x = []
+        y = []
+        for n in self.nodes:
+            if n != self.goal_node:
+                x.append(n.pos.x)
+                y.append(n.pos.y)
         
-        grid = sns.JointGrid(df['x'], df['y'], space=0, height=8, ratio=100)
-        grid.plot_joint(plt.scatter, color="g")
+        # grid = sns.JointGrid(df['x'], df['y'], space=0, height=8, ratio=100)
+        # grid.plot_joint(plt.scatter, color="g")
+        ax.scatter(x,y, c='g')
+        ax.scatter(self.goal_node.pos.x,self.goal_node.pos.y, marker="P", c='purple')
         for n in self.nodes:
             for child in n.children:
                 #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
-                plt.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
-        
-        plt.show()
+                ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
         
     def get_path_to_goal(self):
         if self.goal_node == None:
@@ -84,7 +93,7 @@ class Tree():
         
     def add_goal_node(self, goal_x, goal_y):
         goal_node = Node(Point(goal_x, goal_y))
-        if self.add_node_to_tree(self.goal_node):
+        if self.add_node_to_tree(goal_node):
             self.goal_node = goal_node
             return True
         else:

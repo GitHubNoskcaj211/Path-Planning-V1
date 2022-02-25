@@ -1,85 +1,79 @@
-import numpy as np
-from graph import Graph, Edge, Node, Point
-import time
+from tree import Tree, Point
+import matplotlib.pyplot as plt
+import math
 
 class Simulation():
-    def __init__(self, p_start, p_goal, obstacles):
-        # Parameters
-        self.max_iterations = 30 # max iterations (number of points) to attempt initial graph creation
-        self.sensor_theta = 0.78 # the sensing arc angle in radians
-        self.sensor_max_distance = 3 #the sensing distance
-
-        self.p_goal = p_goal
-        self.p_robot = p_start
-        self.true_obstacles = obstacles # python list of Points
-        # (x,y,data) first element is obstacle T/F, second is confidence (T-known or F-unknown). initializes to free and unknown.
-        self.occupancy_grid = np.full((30,30,2), False) 
-        self.graph = Graph()
-        
-        self.goal_node = Node(Point(self.p_goal.x, self.p_goal.y))
-        self.graph.add_node(self.goal_node)
-        
+    def __init__(self, start, goal, world_bounds):
+        self.robot = Point(start[0], start[1], start[2])
+        self.goal = Point(goal[0], goal[1])
+        self.rrtree = Tree((self.robot.x, self.robot.y), 1, world_bounds)
         self.path = None
-
-    # Returns T/F whether or not an initial graph was found
-    def graph_creation(self):
-        self.start_node = Node(Point(self.p_robot.x, self.p_robot.y))
-        self.graph.add_node(self.start_node)
         
-        self.path = self.graph.find_shortest_path(self.start_node, self.goal_node)
+        self.max_turning_speed = 0.2
+        self.max_movement_speed = 0.2
         
-        # Initial graph formulation
-        i = 0
-        while self.path is None and i < self.max_iterations:
-            # create an exploratory point
-            node = self.graph.generate_exploratory_node(self.start_node, self.goal_node)
+        plt.ion()
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111)
+        
+        self.fig.set_figwidth(8)
+        self.fig.set_figheight(8)
+        
+        self.arrow = self.ax.arrow(self.robot.x, self.robot.y, math.cos(self.robot.theta), math.sin(self.robot.theta), alpha=0.6, width = 0.05, color='red')
+        
+    def build_initial_rrt(self):
+        # while we cannot add the goal node
+        while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
+            self.rrtree.build_tree(None, 500)
+        
+        self.path = self.rrtree.get_path_to_goal()
             
-            # add the node to the graph
-            self.graph.add_node(node)
-            
-            # check if a path reaches goal
-            self.path = self.graph.find_shortest_path(self.start_node, self.goal_node)
-            #sim.graph.display()
-            i += 1
+    # returns true when the path is finished, otherwise returns false
+    def step(self):
+        if len(self.path) == 0:
+            return True
         
-        # No path was found in our maximum allowed iterations
-        if self.path is None:
-            print('No path was found in', self.max_iterations, 'iterations.')
+        # move the robot
+        if not self.move_robot():
+            # if the robot is already at its point, get the next point in the path
+            self.path.pop(0)
+            
+        return False
+        
+    # returns true if the robot was moved and false if the robot was not moved (already at the point)
+    def move_robot(self):
+        next_pos = self.path[0]
+        target_theta = self.robot.get_angle_towards(next_pos)
+        movement_direction = Point(next_pos.x - self.robot.x, next_pos.y - self.robot.y, target_theta - self.robot.theta)
+        
+        # we are already at the point, no more movement necessary
+        if movement_direction.mag() < 0.0001:
             return False
-
+        
+        # turn before moving x and y
+        if abs(movement_direction.theta) >= 0.01:
+            movement_direction.x = 0
+            movement_direction.y = 0
+        elif movement_direction.mag() > self.max_movement_speed:
+            mag = movement_direction.mag()
+            movement_direction.x = movement_direction.x / mag * self.max_movement_speed
+            movement_direction.y = movement_direction.y / mag * self.max_movement_speed
+        
+        # normalize the movement_direction
+        if abs(movement_direction.theta) > self.max_turning_speed:
+            movement_direction.theta = movement_direction.theta / abs(movement_direction.theta) * self.max_turning_speed
+        
+        self.robot.add(movement_direction)
+        
         return True
 
-    def step(self):
-        # move the robot forward 1 step and remove it from the path
-        self.p_robot.set(self.path.pop(0))
-        print(self.p_robot)
-        # Get distance of the sensor
-
-        # Update occupancy grid
-
-        # Update edges in the graph
-
-        # Generate refinement points into the graph
-
-        # Get new path for the robot
-
-
-p_start = Point(5.0,2.0,1.56)
-p_goal = Point(12.0,18.0)
-obstacles = [Point(30,30), Point(15.8,19.3)] # list of points
-sim = Simulation(p_start, p_goal, obstacles)
-
-sim.graph_creation()
-print('Num Points:', len(sim.graph.graph))
-sim.graph.display()
-
-
-# while the sim has a path and it hasn't finished the path
-# while sim.path is not None and len(sim.path.path) != 0:
-#     sim.step()
-#     time.sleep(1)
-
-#     # if our path becomes invalid (obstacle blocked the path)
-#     if sim.path is None:
-#         # attempt to create a new graph
-#         sim.graph_creation()
+    # display on the graph
+    def display(self):
+        self.ax.cla()
+        self.rrtree.display(self.ax)
+        
+        self.arrow.remove()
+        self.arrow = self.ax.arrow(self.robot.x, self.robot.y, .4*math.cos(self.robot.theta), .4*math.sin(self.robot.theta), alpha=0.6, width = 0.05, color='red')
+        
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
