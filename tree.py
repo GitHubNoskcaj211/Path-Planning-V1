@@ -73,7 +73,8 @@ class Tree():
         # grid = sns.JointGrid(df['x'], df['y'], space=0, height=8, ratio=100)
         # grid.plot_joint(plt.scatter, color="g")
         ax.scatter(x,y, c='g')
-        ax.scatter(self.goal_node.pos.x,self.goal_node.pos.y, marker="P", c='purple')
+        if self.goal_node != None:
+            ax.scatter(self.goal_node.pos.x,self.goal_node.pos.y, marker="P", c='purple')
         for n in self.nodes:
             for child in n.children:
                 #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 

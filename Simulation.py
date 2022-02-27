@@ -33,6 +33,8 @@ class Simulation():
         if len(self.path) == 0:
             return True
         
+        # TODO check for obstacles
+        
         # move the robot
         if not self.move_robot():
             # if the robot is already at its point, get the next point in the path
