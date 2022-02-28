@@ -52,7 +52,7 @@ class Robot():
                     cur_distance = obstacle.distance(p)
                     if cur_distance < distance:
                         distance = cur_distance
-                print(obstacles)
+                        
         return distance
     
     def get_sensing_sector(self, steps = 200):

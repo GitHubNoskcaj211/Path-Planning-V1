@@ -18,11 +18,12 @@ class Simulation():
         
         self.robot = Robot(start)
         self.goal = TreePoint(goal[0], goal[1])
-        self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 1, world_bounds)
-        self.path = None
         
         self.obstacles = []
         self.occupancy = OccupancyGrid(world_bounds, self.robot.sensing_radius, self.robot.sensing_angle)
+        
+        self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, world_bounds, self.occupancy.grid)
+        self.path = None
         
         plt.ion()
         self.fig = plt.figure()
@@ -42,9 +43,10 @@ class Simulation():
                         point = Point(random.random() * n, random.random() * n)
                         break
                 break
-            num_points = random.randint(5, 10)
-            points = [(point.x + a, point.y + b) for (a, b) in np.random.uniform(low=-radius, high=radius, size=(num_points, 2))]
-            points = sorted(points, key=lambda x: np.arcsin((x[0] - point.x) / radius) if x[1] - point.y > 0 else 2*math.pi - np.arcsin((x[0] - point.x) / radius))
+            points = []
+            for i in np.arange(0, math.pi*2, math.pi/4):
+                mag = np.random.uniform(low=radius/2, high=radius)
+                points.append([math.cos(i) * mag + point.x, math.sin(i) * mag + point.y])
             points.append(points[0])
             obstacle = Polygon(points)
             self.obstacles.append(obstacle)
@@ -56,10 +58,10 @@ class Simulation():
             linewidth=3, solid_capstyle='round', zorder=2)
         
     def build_initial_rrt(self):
-        self.rrtree.build_tree(None, 500)
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
-            self.rrtree.build_tree(None, 500)
+            self.rrtree.build_tree(100)
+            print('did 100')
         
         self.path = self.rrtree.get_path_to_goal()
             
@@ -69,8 +71,13 @@ class Simulation():
             return True
         
         sensor_distance = self.robot.get_sensor_distance(self.obstacles)
-        self.occupancy.fill_occupancy(self.robot.position, sensor_distance)
-        
+        occupancy_changed = self.occupancy.fill_occupancy(self.robot.position, sensor_distance)
+        if occupancy_changed:
+            self.path = None
+            # regenerate!
+            self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, (self.world_x_min,self.world_y_min,self.world_x_max,self.world_y_max), self.occupancy.grid)
+            self.build_initial_rrt()
+
         # move the robot
         if not self.robot.move_robot(self.path[0]):
             # if the robot is already at its point, get the next point in the path
@@ -82,11 +89,11 @@ class Simulation():
     def display(self):
         self.ax.cla()
         
+        self.occupancy.display(self.ax)
         self.plot_obstacles(self.ax)
 
         self.rrtree.display(self.ax)
         self.robot.display(self.ax)
-        self.occupancy.display(self.ax)
         
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()

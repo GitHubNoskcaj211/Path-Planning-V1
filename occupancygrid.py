@@ -11,6 +11,8 @@ class OccupancyGrid():
         self.sensing_angle = sensing_angle
         
     def fill_occupancy(self, robot_position, distance):
+        data_changed = False
+        
         if distance == np.inf:
             # no obstacle detected
             obstacle_polygon = self.get_sensing_sector(robot_position, self.sensing_radius)
@@ -20,6 +22,10 @@ class OccupancyGrid():
                     square = self.get_occupancy_square_polygon(x,y,x+1,y+1)
                     
                     if obstacle_polygon.intersection(square).area == 1:
+                        if self.grid[y,x,0]:
+                            # if there was an obstacle there
+                            data_changed = True
+                        
                         # known that there isnt an obstacle
                         self.grid[y,x,0] = False
                         self.grid[y,x,1] = True
@@ -33,12 +39,22 @@ class OccupancyGrid():
                     square = self.get_occupancy_square_polygon(x,y,x+1,y+1)
                     
                     if obstacle_arc.intersects(square) and not self.grid[y,x,1]:
+                        if not self.grid[y,x,0]:
+                            # if there wasn't an obstacle there
+                            data_changed = True
+                        
                         # fill as obstacle
                         self.grid[y,x,0] = True
                     elif obstacle_polygon.intersection(square).area == 1:
+                        if self.grid[y,x,0]:
+                            # if there was an obstacle there
+                            data_changed = True
+                        
                         # known that there isnt an obstacle
                         self.grid[y,x,0] = False
                         self.grid[y,x,1] = True
+                        
+        return data_changed
         
     def print(self):
         print('occupancy:')
