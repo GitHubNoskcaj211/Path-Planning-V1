@@ -191,6 +191,7 @@ class Tree():
     # returns true if a node is in an obstacle
     def node_in_obstacle(self, node):
         return False
+        # TODO
         # return self.occupancy_grid.query(node.pos.x, node.pos.y)
     
     def clear_path(self, node1, node2):
