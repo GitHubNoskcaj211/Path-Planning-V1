@@ -60,8 +60,7 @@ class Simulation():
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
-            self.rrtree.build_tree(100)
-            print('did 100')
+            self.rrtree.build_tree(750)
         
         self.path = self.rrtree.get_path_to_goal()
             
@@ -73,6 +72,8 @@ class Simulation():
         sensor_distance = self.robot.get_sensor_distance(self.obstacles)
         occupancy_changed = self.occupancy.fill_occupancy(self.robot.position, sensor_distance)
         if occupancy_changed:
+            self.display()
+            
             self.path = None
             # regenerate!
             self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, (self.world_x_min,self.world_y_min,self.world_x_max,self.world_y_max), self.occupancy.grid)

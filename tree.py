@@ -61,6 +61,11 @@ class Tree():
         self.world_y_min = world_bounds[1]
         self.world_y_max = world_bounds[3]
         
+        self.random_point_x_min = max(self.world_x_min, start[0] - self.radius)
+        self.random_point_x_max = min(self.world_x_max, start[0] + self.radius)
+        self.random_point_y_min = max(self.world_y_min, start[1] - self.radius)
+        self.random_point_y_max = min(self.world_y_max, start[1] + self.radius)
+        
         self.goal_node = None
         
         self.add_node(Node(Point(start[0], start[1]), 0))
@@ -124,6 +129,11 @@ class Tree():
         # add a node to our node list
         self.add_node(new_node)
         
+        self.random_point_x_min = max(self.world_x_min, min(self.random_point_x_min, new_node.pos.x - self.radius))
+        self.random_point_x_max = min(self.world_x_max, max(self.random_point_x_max, new_node.pos.x + self.radius))
+        self.random_point_y_min = max(self.world_y_min, min(self.random_point_y_min, new_node.pos.y - self.radius))
+        self.random_point_y_max = min(self.world_y_max, max(self.random_point_y_max, new_node.pos.y + self.radius))
+        
         # connect the nearest node to the new node
         nearest_node = self.nodes[nearest_nodes[0][0]]
         self.add_connection(nearest_node, new_node)
@@ -172,14 +182,15 @@ class Tree():
     
     def get_nearest_nodes(self, node):
         node_distance_list = []
-        
+        shortest_distance = None
         for n in self.nodes:
-            if self.clear_path(n, node):
-                node_distance_list.append([n.index, n.distance(node)])
+            if shortest_distance == None or node.distance(n) <= self.radius or node.distance(n) < shortest_distance:
+                if self.clear_path(n, node): # move this check up
+                    node_distance_list.append([n.index, n.distance(node)])
+                    shortest_distance = node.distance(n)
             
         # sort from shortest to longest distance
         node_distance_list = sorted(node_distance_list, key=lambda x: x[1])
-        
         return node_distance_list
     
     # generates a node with a random position in our world
@@ -236,7 +247,7 @@ class Tree():
             if valid_square(y,x-1) and not visited[y,x-1] and path.intersects(LineString([(x, y), (x, y+1)])):
                 queue.append([y,x-1])
                 visited[y,x-1] = True
-
+                
         # went through all squares that intersect the line and did not find 
         return True
     
