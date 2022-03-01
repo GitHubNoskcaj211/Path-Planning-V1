@@ -22,7 +22,7 @@ class Simulation():
         self.obstacles = []
         self.occupancy = OccupancyGrid(world_bounds, self.robot.sensing_radius, self.robot.sensing_angle)
         
-        self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, world_bounds, self.occupancy.grid)
+        self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, world_bounds, self.occupancy)
         self.path = None
         
         plt.ion()
@@ -76,7 +76,7 @@ class Simulation():
             
             self.path = None
             # regenerate!
-            self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, (self.world_x_min,self.world_y_min,self.world_x_max,self.world_y_max), self.occupancy.grid)
+            self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, (self.world_x_min,self.world_y_min,self.world_x_max,self.world_y_max), self.occupancy)
             self.build_initial_rrt()
 
         # move the robot

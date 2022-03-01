@@ -10,6 +10,49 @@ class OccupancyGrid():
         self.sensing_radius = sensing_radius
         self.sensing_angle = sensing_angle
         
+    def query_obstacle(self, x, y):
+        return self.grid[y,x,0]
+    
+    def query_free(self, x, y):
+        return not self.grid[y,x,0]
+    
+    def query_free(self, x1, y1, x2, y2):
+        visited = np.full(self.grid.shape[:2], False)
+        def valid_square(y,x):
+            y_max = visited.shape[0] - 1
+            x_max = visited.shape[1] - 1
+            y_min = 0
+            x_min = 0
+            return y <= y_max and y >= y_min and x <= x_max and x >= x_min
+        
+        path = LineString([(x1, y1), (x2, y2)])
+        
+        y = math.floor(y1)
+        x = math.floor(x1)
+        queue = [[y,x]]
+        visited[y,x] = True
+        while len(queue) > 0:
+            y, x = queue.pop(0)
+            
+            if self.grid[y,x,0]:
+                return False
+            
+            if valid_square(y+1,x) and not visited[y+1,x] and path.intersects(LineString([(x, y+1), (x+1, y+1)])):
+                queue.append([y+1,x])
+                visited[y+1,x] = True
+            if valid_square(y-1,x) and not visited[y-1,x] and path.intersects(LineString([(x, y), (x+1, y)])):
+                queue.append([y-1,x])
+                visited[y-1,x] = True
+            if valid_square(y,x+1) and not visited[y,x+1] and path.intersects(LineString([(x+1, y), (x+1, y+1)])):
+                queue.append([y,x+1])
+                visited[y,x+1] = True
+            if valid_square(y,x-1) and not visited[y,x-1] and path.intersects(LineString([(x, y), (x, y+1)])):
+                queue.append([y,x-1])
+                visited[y,x-1] = True
+                
+        # went through all squares that intersect the line and did not find 
+        return True
+        
     def fill_occupancy(self, robot_position, distance):
         data_changed = False
         

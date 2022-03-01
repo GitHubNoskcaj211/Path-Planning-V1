@@ -3,7 +3,7 @@ from simulation import Simulation
 start = (2.5,2.5,0)
 goal = (25.5,28.5)
 # xmin, ymin, xmax, ymax
-world_bounds = (0,0,30,30)
+world_bounds = (0,0,32,32)
 sim = Simulation(start, goal, world_bounds)
 
 sim.generate_obstacles(5)

@@ -208,48 +208,14 @@ class Tree():
         y = math.floor(node.pos.y)
         x = math.floor(node.pos.x)
         
-        return self.occupancy_grid[y,x,0]
+        return self.occupancy_grid.query_obstacle(x,y)
     
     # returns true if there is a clear straight line path (not intersecting any obstacles)
     def clear_path(self, node1, node2):
         if self.occupancy_grid is None:
             return True
         
-        visited = np.full(self.occupancy_grid.shape[:2], False)
-        def valid_square(y,x):
-            y_max = visited.shape[0] - 1
-            x_max = visited.shape[1] - 1
-            y_min = 0
-            x_min = 0
-            return y <= y_max and y >= y_min and x <= x_max and x >= x_min
-        
-        path = LineString([(node1.pos.x, node1.pos.y), (node2.pos.x, node2.pos.y)])
-        
-        y = math.floor(node1.pos.y)
-        x = math.floor(node1.pos.x)
-        queue = [[y,x]]
-        visited[y,x] = True
-        while len(queue) > 0:
-            y, x = queue.pop(0)
-            
-            if self.occupancy_grid[y,x,0]:
-                return False
-            
-            if valid_square(y+1,x) and not visited[y+1,x] and path.intersects(LineString([(x, y+1), (x+1, y+1)])):
-                queue.append([y+1,x])
-                visited[y+1,x] = True
-            if valid_square(y-1,x) and not visited[y-1,x] and path.intersects(LineString([(x, y), (x+1, y)])):
-                queue.append([y-1,x])
-                visited[y-1,x] = True
-            if valid_square(y,x+1) and not visited[y,x+1] and path.intersects(LineString([(x+1, y), (x+1, y+1)])):
-                queue.append([y,x+1])
-                visited[y,x+1] = True
-            if valid_square(y,x-1) and not visited[y,x-1] and path.intersects(LineString([(x, y), (x, y+1)])):
-                queue.append([y,x-1])
-                visited[y,x-1] = True
-                
-        # went through all squares that intersect the line and did not find 
-        return True
+        return self.occupancy_grid.query_free(node1.pos.x, node1.pos.y, node2.pos.x, node2.pos.y)
     
     def clear_tree(self):
         self.nodes = []
