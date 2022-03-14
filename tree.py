@@ -3,7 +3,8 @@ import random
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, LineString
 import numpy as np
-
+from rtree import RTree
+from rect import Rect
 
 class Point():        
     def __init__(self, x, y, theta = 0):
@@ -51,7 +52,7 @@ class Node():
 
 class Tree():
     def __init__(self, start, radius, world_bounds, occupancy_grid):
-        self.nodes = []
+        self.nodes = []#KDTree()
         self.occupancy_grid = occupancy_grid
         
         self.radius = radius
@@ -195,8 +196,8 @@ class Tree():
     
     # generates a node with a random position in our world
     def generate_random_node(self):
-        x_pos = random.random() * (self.world_x_max - self.world_x_min) + self.world_x_min
-        y_pos = random.random() * (self.world_y_max - self.world_y_min) + self.world_y_min
+        x_pos = random.random() * (self.random_point_x_max - self.random_point_x_min) + self.random_point_x_min
+        y_pos = random.random() * (self.random_point_y_max - self.random_point_y_min) + self.random_point_y_min
         
         return Node(Point(x_pos, y_pos))
     

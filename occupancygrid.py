@@ -72,6 +72,14 @@ class OccupancyGrid():
                         # known that there isnt an obstacle
                         self.grid[y,x,0] = False
                         self.grid[y,x,1] = True
+                    # elif obstacle_polygon.intersection(square).area > 0 and not self.grid[y,x,1]:
+                    #     if self.grid[y,x,0]:
+                    #         # if there was an obstacle there
+                    #         data_changed = True
+                            
+                    #     # unknown that there isnt an obstacle
+                    #     self.grid[y,x,0] = False
+                    #     self.grid[y,x,1] = False
         else:
             # an obstacle was detected
             obstacle_arc = self.get_obstacle_arc(robot_position, distance)
@@ -96,6 +104,15 @@ class OccupancyGrid():
                         # known that there isnt an obstacle
                         self.grid[y,x,0] = False
                         self.grid[y,x,1] = True
+                    # elif obstacle_polygon.intersection(square).area > 0 and not self.grid[y,x,1]:
+                    #     if self.grid[y,x,0]:
+                    #         # if there was an obstacle there
+                    #         data_changed = True
+                            
+                    #     # unknown that there isnt an obstacle
+                    #     self.grid[y,x,0] = False
+                    #     self.grid[y,x,1] = False
+                    
                         
         return data_changed
         

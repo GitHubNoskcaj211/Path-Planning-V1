@@ -334,27 +334,3 @@ class Edge():
     
     def __eq__(self, edge):
         return self.node1.index == edge.node1.index and self.node2.index == edge.node2.index
-        
-        
-# testing path creation
-# g = Graph()
-# g.add_node(Node(Point(0,0)))
-# g.add_node(Node(Point(0,1)))
-# g.add_node(Node(Point(0,2)))
-# g.add_node(Node(Point(1,0)))
-# g.add_node(Node(Point(1,1)))
-# g.add_node(Node(Point(1,2)))
-# g.add_node(Node(Point(2,0)))
-# g.add_node(Node(Point(2,1)))
-# g.add_node(Node(Point(2,2)))
-# g.get_node(0).add_edge(g.get_node(1))
-# g.get_node(0).add_edge(g.get_node(8))
-# g.get_node(4).add_edge(g.get_node(5))
-# g.get_node(4).add_edge(g.get_node(6))
-# g.get_node(2).add_edge(g.get_node(7))
-# g.get_node(3).add_edge(g.get_node(7))
-# g.get_node(1).add_edge(g.get_node(5))
-# g.get_node(8).add_edge(g.get_node(6))
-
-# path = g.find_shortest_path(g.get_node(0), g.get_node(6))
-# print(path)

@@ -12,7 +12,7 @@ class Robot():
         self.max_movement_speed = 0.5
         
         self.sensing_angle = math.pi / 4
-        self.sensing_radius = 6
+        self.sensing_radius = 8
         
     # returns true if the robot was moved and false if the robot was not moved (already at the point)
     def move_robot(self, next_pos):

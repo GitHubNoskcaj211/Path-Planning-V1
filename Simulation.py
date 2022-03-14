@@ -56,11 +56,19 @@ class Simulation():
             x, y = obstacle.exterior.xy
             ax.plot(x, y, color='#6699cc', alpha=1,
             linewidth=3, solid_capstyle='round', zorder=2)
+            
+    def plot_path(self, ax):
+        if self.path == None:
+            return
+        if len(self.path) > 0:
+            ax.plot([self.robot.position.x, self.path[0].x], [self.robot.position.y, self.path[0].y], linewidth=0.75, color='y')
+            for i in range(len(self.path) - 1):
+                ax.plot([self.path[i].x, self.path[i+1].x], [self.path[i].y, self.path[i+1].y], linewidth=0.75, color='y')
         
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
-            self.rrtree.build_tree(750)
+            self.rrtree.build_tree(500)
         
         self.path = self.rrtree.get_path_to_goal()
             
@@ -71,9 +79,15 @@ class Simulation():
         
         sensor_distance = self.robot.get_sensor_distance(self.obstacles)
         occupancy_changed = self.occupancy.fill_occupancy(self.robot.position, sensor_distance)
-        if occupancy_changed:
+        if occupancy_changed: #occupancy_changed:
             self.display()
+            # for angle in np.linspace(self.robot.position.theta, self.robot.position.theta + math.pi*2, 32, endpoint=True):
+            #     self.robot.position.theta = angle
+            #     sensor_distance = self.robot.get_sensor_distance(self.obstacles)
+            #     occupancy_changed = self.occupancy.fill_occupancy(self.robot.position, sensor_distance)
+            #     self.display()
             
+            # self.robot.position.theta -= math.pi * 2
             self.path = None
             # regenerate!
             self.rrtree = Tree((self.robot.position.x, self.robot.position.y), 3, (self.world_x_min,self.world_y_min,self.world_x_max,self.world_y_max), self.occupancy)
@@ -94,6 +108,9 @@ class Simulation():
         self.plot_obstacles(self.ax)
 
         self.rrtree.display(self.ax)
+        
+        self.plot_path(self.ax)
+        
         self.robot.display(self.ax)
         
         self.fig.canvas.draw()
