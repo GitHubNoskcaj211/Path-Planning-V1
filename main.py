@@ -1,4 +1,4 @@
-from simulation import Simulation
+from Simulation import Simulation
 
 start = (2.5,2.5,0)
 goal = (25.5,28.5)
