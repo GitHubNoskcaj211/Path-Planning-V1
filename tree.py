@@ -162,16 +162,16 @@ class Tree():
                     
     # adds node2 as a child of node1 and adds node2 as a parent of node1
     def add_connection(self, node1, node2):
-        node1.children.append(node2)
+        # node1.children.append(node2)
         node2.parent = node1
         node2.cost = node1.cost + node1.distance(node2)
         
     # removes node2 from the children of node1 and removes node1 as a parent of node2
     def remove_connection(self, node1, node2):
-        for i in range(len(node1.children)):
-            if node1.children[i] == node2:
-                node1.children.pop(i)
-                break
+        # for i in range(len(node1.children)):
+        #     if node1.children[i] == node2:
+        #         node1.children.pop(i)
+        #         break
             
         node2.parent = None
             

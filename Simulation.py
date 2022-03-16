@@ -57,6 +57,15 @@ class Simulation():
             ax.plot(x, y, color='#6699cc', alpha=1,
             linewidth=3, solid_capstyle='round', zorder=2)
         
+    def plot_path(self, ax):
+        if self.path == None:
+            return
+        if len(self.path) > 0:
+            ax.plot([self.robot.position.x, self.path[0].x], [self.robot.position.y, self.path[0].y], linewidth=0.75, color='y')
+            for i in range(len(self.path) - 1):
+                ax.plot([self.path[i].x, self.path[i+1].x], [self.path[i].y, self.path[i+1].y], linewidth=0.75, color='y')
+        
+        
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
@@ -94,6 +103,9 @@ class Simulation():
         self.plot_obstacles(self.ax)
 
         self.rrtree.display(self.ax)
+        
+        self.plot_path(self.ax)
+        
         self.robot.display(self.ax)
         
         self.fig.canvas.draw()
