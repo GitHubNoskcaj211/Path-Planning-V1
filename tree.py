@@ -1,7 +1,6 @@
 import math
 import random
 import matplotlib.pyplot as plt
-from shapely.geometry import Polygon, LineString
 import numpy as np
 
 
