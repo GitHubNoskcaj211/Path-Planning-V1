@@ -1,6 +1,8 @@
 from pickletools import stringnl
 from rtree import index
 import math
+import random
+import time
 
 class Point():        
     def __init__(self, x, y, theta = 0):
@@ -51,21 +53,22 @@ n.index = 0
 idx = index.Index()
 left, bottom, right, top = (0.0, 0.0, 0.0, 0.0)
 
-for i in range(0,20):
-    idx.insert(i, (i,i,i,i), str(i))
+for i in range(0,10000):
+    idx.insert(i, (random.random()-1,random.random()-1,random.random(),random.random()), i)
 
-idx.delete(0, (0,0,0,0))
+# idx.delete(0, (0,0,0,0))
 
-gen = idx.intersection((-1.0, -1.0, 2.0, 2.0), objects=True)
-list(gen)
-list(idx.intersection((1.0000001, 1.0000001, 2.0, 2.0)))
-print('filled',flush=True)
-for i in idx.nearest((0,0,0,0), num_results=20):
-    print(i)
-print(idx.get_size())
+# gen = idx.intersection((-1.0, -1.0, 2.0, 2.0), objects=True)
+# list(gen)
+# list(idx.intersection((1.0000001, 1.0000001, 2.0, 2.0)))
+print('filled', time.time(),flush=True)
+# for i in idx.nearest((512,213,512,213), num_results=1000):
+#     print(i)
+# print(idx.get_size())
+x = idx.nearest((512,213,512,213), num_results=10000, objects=True)
 # for i in idx.nearest((0,0,0,0), num_results=10000, objects=True):
 #     print(i.object, i.bounds)
-print('done gen', flush=True)
+print('done gen', time.time(), flush=True)
 print(idx.get_size())
 
 

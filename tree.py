@@ -37,12 +37,13 @@ class Node():
         self.cost = cost
         self.parent = None
         self.children = []
-        self.index = -1
+        self.rtree_index = -1
+        self.nodes_index = -1
         
     def __str__(self):
         s = 'Node ' + str(self.index) + ': ' + str(self.pos) + ' | Cost: ' + str(self.cost) +(' | Parent: ' + str(self.parent.index) if self.parent != None else ' ') + 'Children: '
-        for n in self.children:
-            s += ' ' + str(n.index)
+        # for n in self.children:
+        #     s += ' ' + str(n.index)
             
         return s
         
@@ -51,7 +52,9 @@ class Node():
 
 class Tree():
     def __init__(self, start, radius, world_bounds, occupancy_grid):
+        self.nodes = []
         self.rtree = index.Index()
+        self.rtree_size = 0
         self.fill_rtree_with_occupancy(occupancy_grid)
         
         self.radius = radius
@@ -73,30 +76,28 @@ class Tree():
     def fill_rtree_with_occupancy(self, occupancy_grid):
         for i in occupancy_grid.get_all_obstacle_polygons():
             x, y = i.exterior.coords.xy
-            self.rtree.insert(self.rtree.get_size(), (min(x), min(y), max(x), max(y)), i)
+            self.rtree.insert(self.rtree_size, (min(x), min(y), max(x), max(y)), i)
+            self.rtree_size += 1
             
-    
     def display(self, ax):
         x = []
         y = []
-        for n in self.get_nearest_rtree_nodes(0, 0):
-            n = n.object
-            if type(n) == Node:
-                if n != self.goal_node:
-                    x.append(n.pos.x)
-                    y.append(n.pos.y)
+        for n in self.nodes:
+            if n != self.goal_node:
+                x.append(n.pos.x)
+                y.append(n.pos.y)
         
         # grid = sns.JointGrid(df['x'], df['y'], space=0, height=8, ratio=100)
         # grid.plot_joint(plt.scatter, color="g")
         ax.scatter(x,y, c='g')
         if self.goal_node != None:
             ax.scatter(self.goal_node.pos.x,self.goal_node.pos.y, marker="P", c='purple')
-        for n in self.get_nearest_rtree_nodes(0, 0):
-            n = n.object
-            if type(n) == Node:
-                for child in n.children:
-                    #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
-                    ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
+        # for n in self.get_nearest_rtree_nodes(0, 0):
+        #     n = n.object
+        #     if type(n) == Node:
+        #         for child in n.children:
+        #             #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
+        #             ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
         
     def get_path_to_goal(self):
         if self.goal_node is None:
@@ -144,18 +145,17 @@ class Tree():
         self.random_point_y_min = max(self.world_y_min, min(self.random_point_y_min, new_node.pos.y - self.radius))
         self.random_point_y_max = min(self.world_y_max, max(self.random_point_y_max, new_node.pos.y + self.radius))
         
-        # connect the nearest node to the new node
-        nearest_node = nearest_nodes[0]
-        self.add_connection(nearest_node, new_node)
-        
         # go through all the nearest nodes and check for a better parent
+        best_parent = nearest_nodes[0]
+        min_cost = best_parent.cost + new_node.distance(best_parent)
         for next_nearest_node in nearest_nodes:
             if next_nearest_node.distance(new_node) > self.radius:
                 break
             
-            if next_nearest_node.cost + new_node.distance(next_nearest_node) < new_node.cost:
-                self.remove_connection(new_node.parent, new_node)
-                self.add_connection(next_nearest_node, new_node)
+            if next_nearest_node.cost + new_node.distance(next_nearest_node) < min_cost:
+                best_parent = next_nearest_node
+                min_cost = best_parent.cost + new_node.distance(best_parent)
+        self.add_connection(best_parent, new_node)
         
         # go through all the nearest nodes and check re-routing through new_node
         for next_nearest_node in nearest_nodes:
@@ -170,36 +170,27 @@ class Tree():
                     
     # adds node2 as a child of node1 and adds node2 as a parent of node1
     def add_connection(self, node1, node2):
-        node1.children.append(node2)
+        # node1.children.append(node2)
         node2.parent = node1
         node2.cost = node1.cost + node1.distance(node2)
-        
-        self.add_node(node1)
-        self.add_node(node2)
         
         
     # removes node2 from the children of node1 and removes node1 as a parent of node2
     def remove_connection(self, node1, node2):
-        for i in range(len(node1.children)):
-            if node1.children[i] == node2:
-                node1.children.pop(i)
-                break
+        # for i in range(len(node1.children)):
+        #     if node1.children[i] == node2:
+        #         node1.children.pop(i)
+        #         break
             
         node2.parent = None
-        
-        self.add_node(node1)
-        self.add_node(node2)
             
     # adds a node to our rtree and sets its index
     def add_node(self, node):
-        if node.index == -1:
-            # add it into the tree
-            node.index = self.rtree.get_size()
-            self.rtree.insert(node.index, (node.pos.x, node.pos.y, node.pos.x, node.pos.y), node)
-        else:
-            # delete and reinsert if it is already in the tree
-            self.rtree.delete(node.index, (node.pos.x, node.pos.y, node.pos.x, node.pos.y))
-            self.rtree.insert(node.index, (node.pos.x, node.pos.y, node.pos.x, node.pos.y), node)
+        node.rtree_index = self.rtree_size
+        node.nodes_index = len(self.nodes)
+        self.rtree.insert(node.rtree_index, (node.pos.x, node.pos.y, node.pos.x, node.pos.y), node.nodes_index)
+        self.rtree_size += 1
+        self.nodes.append(node)
     
     def get_nearest_nodes(self, node):
         obstacles = [] # list of polygons representing the squares, only added once discovered as relavant
@@ -215,17 +206,19 @@ class Tree():
         
         for i in self.get_nearest_rtree_nodes(node.pos.x, node.pos.y):
             i = i.object
-            if type(i) == Node:
-                if node.distance(i) > self.radius and len(nearest_nodes) > 1: # if we are outside of our connection radius, return what we found
+            if type(i) == int:
+                node2 = self.nodes[i]
+                if node.distance(node2) > self.radius and len(nearest_nodes) > 1: # if we are outside of our connection radius, return what we found
                     break
-                elif not clear_path(node, i):
+                elif not clear_path(node, node2):
                     continue
                 else: #we are within radius distance and we have a clear path, add it to a list
-                    nearest_nodes.append(i)
+                    nearest_nodes.append(node2)
             elif type(i) == Polygon:
                 obstacles.append(i)
             else:
                 raise Exception('Something went wrong with the rtree')
+            
         return nearest_nodes
     
     # generates a node with a random position in our world
@@ -245,7 +238,8 @@ class Tree():
     
     # returns the generator object for the whole rtree based on distance from the point given
     def get_nearest_rtree_nodes(self, x, y):
-        return self.rtree.nearest((x,y,x,y), num_results=self.rtree.get_size(), objects=True)
+        return self.rtree.nearest((x,y,x,y), num_results=self.rtree_size, objects=True)
     
     def clear_tree(self):
         self.rtree = index.Index()
+        self.rtree_size = 0
