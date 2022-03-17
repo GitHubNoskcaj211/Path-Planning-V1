@@ -47,7 +47,7 @@ class Node():
         return s
         
     def distance(self, node2):
-        return self.pos.distance(node2.pos)
+        return math.sqrt((self.pos.x - node2.pos.x) ** 2 + (self.pos.y - node2.pos.y) ** 2)
 
 class Tree():
     def __init__(self, start, radius, world_bounds, occupancy_grid):
