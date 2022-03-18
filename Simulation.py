@@ -7,7 +7,6 @@ import math
 import random
 from shapely.geometry import Point, Polygon
 import numpy as np
-import time
 
 class Simulation():
     def __init__(self, start, goal, world_bounds):
@@ -32,14 +31,17 @@ class Simulation():
         self.fig.set_figwidth(8)
         self.fig.set_figheight(8)
         
-    def generate_obstacles(self, N, radius=3):
-        n = self.world_x_max # Question: assumes square?
+    def generate_obstacles(self, N, radius=4):
+        n = self.world_x_max
         self.obstacles = []
         for i in range(N):
             point = Point(random.random() * n, random.random() * n)
             while True:
+                if self.robot.position.distance(point) < radius * 1.5 or self.goal.distance(point) < radius * 1.5:
+                    point = Point(random.random() * n, random.random() * n)
+                    continue
                 for obstacle in self.obstacles:
-                    if obstacle.distance(point) < radius:
+                    if obstacle.distance(point) < radius * 1.5:
                         point = Point(random.random() * n, random.random() * n)
                         break
                 break
@@ -68,7 +70,7 @@ class Simulation():
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
-            self.rrtree.build_tree(500)
+            self.rrtree.build_tree(1000)
         
         self.path = self.rrtree.get_path_to_goal()
             

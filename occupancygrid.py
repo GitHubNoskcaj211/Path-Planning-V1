@@ -6,12 +6,16 @@ import seaborn as sns
 
 class OccupancyGrid():
     def __init__(self, world_bounds, sensing_radius, sensing_angle):
-        self.grid = np.full((world_bounds[2],world_bounds[3],2), False) # first is if there is an obstacle; second is if it is known
+        self.resolution = 1.0 # grid cells per meter
+        self.grid = np.full((int(world_bounds[2] * self.resolution),int(world_bounds[3] * self.resolution),2), False) # first is if there is an obstacle; second is if it is known
         self.sensing_radius = sensing_radius
         self.sensing_angle = sensing_angle
         
-    # def query_obstacle(self, x, y):
-    #     return self.grid[y,x,0]
+    def query_obstacle(self, x, y):
+        j = math.floor(y*self.resolution)
+        i = math.floor(x*self.resolution)
+        
+        return self.grid[j,i,0]
     
     # def query_free(self, x, y):
     #     return not self.grid[y,x,0]
@@ -55,14 +59,12 @@ class OccupancyGrid():
     
     def get_all_obstacle_polygons(self):
         obstacles = []
-        for y in range(self.grid.shape[0]):
-            for x in range(self.grid.shape[1]):
-                if self.grid[y,x,0]:
-                    obstacles.append(self.get_occupancy_square_polygon(x,y,x+1,y+1))
+        for j in range(self.grid.shape[0]):
+            for i in range(self.grid.shape[1]):
+                if self.grid[j,i,0]:
+                    obstacles.append(self.get_occupancy_square_polygon(i,j,i+1,j+1))
                     
         return obstacles
-                
-                
         
     def fill_occupancy(self, robot_position, distance):
         data_changed = False
@@ -71,18 +73,18 @@ class OccupancyGrid():
             # no obstacle detected
             obstacle_polygon = self.get_sensing_sector(robot_position, self.sensing_radius)
             
-            for y in range(self.grid.shape[0]):
-                for x in range(self.grid.shape[1]):
-                    square = self.get_occupancy_square_polygon(x,y,x+1,y+1)
+            for j in range(self.grid.shape[0]):
+                for i in range(self.grid.shape[1]):
+                    square = self.get_occupancy_square_polygon(i,j,i+1,j+1)
                     
                     if obstacle_polygon.intersection(square).area == 1:
-                        if self.grid[y,x,0]:
+                        if self.grid[j,i,0]:
                             # if there was an obstacle there
                             data_changed = True
                         
                         # known that there isnt an obstacle
-                        self.grid[y,x,0] = False
-                        self.grid[y,x,1] = True
+                        self.grid[j,i,0] = False
+                        self.grid[j,i,1] = True
                     # elif obstacle_polygon.intersection(square).area > 0 and not self.grid[y,x,1]:
                     #     if self.grid[y,x,0]:
                     #         # if there was an obstacle there
@@ -96,25 +98,25 @@ class OccupancyGrid():
             obstacle_arc = self.get_obstacle_arc(robot_position, distance)
             obstacle_polygon = self.get_sensing_sector(robot_position, distance)
             
-            for y in range(self.grid.shape[0]):
-                for x in range(self.grid.shape[1]):
-                    square = self.get_occupancy_square_polygon(x,y,x+1,y+1)
+            for j in range(self.grid.shape[0]):
+                for i in range(self.grid.shape[1]):
+                    square = self.get_occupancy_square_polygon(i,j,i+1,j+1)
                     
-                    if obstacle_arc.intersects(square) and not self.grid[y,x,1]:
-                        if not self.grid[y,x,0]:
+                    if obstacle_arc.intersects(square) and not self.grid[j,i,1]:
+                        if not self.grid[j,i,0]:
                             # if there wasn't an obstacle there
                             data_changed = True
                         
                         # fill as obstacle
-                        self.grid[y,x,0] = True
+                        self.grid[j,i,0] = True
                     elif obstacle_polygon.intersection(square).area == 1:
-                        if self.grid[y,x,0]:
+                        if self.grid[j,i,0]:
                             # if there was an obstacle there
                             data_changed = True
                         
                         # known that there isnt an obstacle
-                        self.grid[y,x,0] = False
-                        self.grid[y,x,1] = True
+                        self.grid[j,i,0] = False
+                        self.grid[j,i,1] = True
                     # elif obstacle_polygon.intersection(square).area > 0 and not self.grid[y,x,1]:
                     #     if self.grid[y,x,0]:
                     #         # if there was an obstacle there
@@ -129,20 +131,25 @@ class OccupancyGrid():
         
     def print(self):
         print('occupancy:')
-        for i in range(self.grid.shape[0] - 1, -1, -1):
-            for j in range(self.grid.shape[1]):
-                if self.grid[i,j,0]:
+        for j in range(self.grid.shape[0] - 1, -1, -1):
+            for i in range(self.grid.shape[1]):
+                if self.grid[j,i,0]:
                     print(9, end=' ')
                 else:
-                    if self.grid[i,j,1]:
+                    if self.grid[j,i,1]:
                         print(0, end=' ')
                     else:
                         print(5, end=' ')
             print()
             
     # gets a polygon representing the square on the occupancy grid         
-    def get_occupancy_square_polygon(self, start_x, start_y, end_x, end_y):
+    def get_occupancy_square_polygon(self, start_i, start_j, end_i, end_j):
         segment_vertices = []
+        start_x = start_i / self.resolution
+        start_y = start_j / self.resolution
+        end_x = end_i / self.resolution
+        end_y = end_j / self.resolution
+        
         segment_vertices.append([start_x, start_y])
         segment_vertices.append([start_x, end_y])
         segment_vertices.append([end_x, end_y])
@@ -198,15 +205,15 @@ class OccupancyGrid():
 
     def display(self, ax):
         heatmap_fill = np.zeros(shape=self.grid.shape[:2])
-        for i in range(self.grid.shape[0]):
-            for j in range(self.grid.shape[1]):
-                if self.grid[i,j,0]:
-                    heatmap_fill[i,j] = 1 # there is an obstacle
+        for j in range(self.grid.shape[0]):
+            for i in range(self.grid.shape[1]):
+                if self.grid[j,i,0]:
+                    heatmap_fill[j,i] = 1 # there is an obstacle
                 else:
-                    if self.grid[i,j,1]:
-                        heatmap_fill[i,j] = 0 # known no obstacle
+                    if self.grid[j,i,1]:
+                        heatmap_fill[j,i] = 0 # known no obstacle
                     else:
-                        heatmap_fill[i,j] = 0.5 # unknown no obstacle
+                        heatmap_fill[j,i] = 0.5 # unknown no obstacle
         
-        sns.heatmap(heatmap_fill, linewidth=0.1, ax=ax, cbar=False, vmin=0, vmax=1, cmap='Greys')
+        sns.heatmap(heatmap_fill, linewidth=0.1, ax=ax, cbar=False, vmin=0, vmax=1, cmap='Greys', xticklabels=np.arange(int(self.grid.shape[1] / self.resolution)), yticklabels=np.arange(int(self.grid.shape[0] / self.resolution)))
         ax.invert_yaxis()

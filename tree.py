@@ -52,6 +52,7 @@ class Node():
 
 class Tree():
     def __init__(self, start, radius, world_bounds, occupancy_grid):
+        self.occupancy = occupancy_grid
         self.nodes = []
         self.rtree = index.Index()
         self.rtree_size = 0
@@ -223,18 +224,20 @@ class Tree():
     
     # generates a node with a random position in our world
     def generate_random_node(self):
-        x_pos = random.random() * (self.random_point_x_max - self.random_point_x_min) + self.random_point_x_min
-        y_pos = random.random() * (self.random_point_y_max - self.random_point_y_min) + self.random_point_y_min
+        x_pos = random.random() * (self.world_x_max - self.world_x_min) + self.world_x_min
+        y_pos = random.random() * (self.world_y_max - self.world_y_min) + self.world_y_min
         
         return Node(Point(x_pos, y_pos))
     
     # returns true if a node is in an obstacle
     def node_in_obstacle(self, node):
-        for i in self.rtree.intersection((node.pos.x, node.pos.y, node.pos.x, node.pos.y), objects=True):
-            if type(i) == Polygon:
-                return True
+        # for i in self.rtree.intersection((node.pos.x, node.pos.y, node.pos.x, node.pos.y), objects=True):
+        #     if type(i) == Polygon:
+        #         return True
             
-        return False
+        # return False
+        
+        return self.occupancy.query_obstacle(node.pos.x,node.pos.y)
     
     # returns the generator object for the whole rtree based on distance from the point given
     def get_nearest_rtree_nodes(self, x, y):

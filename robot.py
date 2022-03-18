@@ -8,7 +8,7 @@ class Robot():
     def __init__(self, start):
         self.position = TreePoint(start[0], start[1], start[2])
         
-        self.max_turning_speed = 0.3
+        self.max_turning_speed = 0.1
         self.max_movement_speed = 0.5
         
         self.sensing_angle = math.pi / 4
@@ -17,7 +17,12 @@ class Robot():
     # returns true if the robot was moved and false if the robot was not moved (already at the point)
     def move_robot(self, next_pos):
         target_theta = self.position.get_angle_towards(next_pos)
-        movement_direction = TreePoint(next_pos.x - self.position.x, next_pos.y - self.position.y, target_theta - self.position.theta)
+        delta_theta = target_theta - self.position.theta
+        while delta_theta > math.pi:
+            delta_theta -= math.pi * 2
+        while delta_theta < -math.pi:
+            delta_theta += math.pi * 2
+        movement_direction = TreePoint(next_pos.x - self.position.x, next_pos.y - self.position.y, delta_theta)
         
         # we are already at the point, no more movement necessary
         if movement_direction.mag() < 0.0001:
