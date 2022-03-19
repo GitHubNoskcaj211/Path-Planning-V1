@@ -16,43 +16,77 @@ class OccupancyGrid():
     def query_free(self, x, y):
         return not self.grid[y,x,0]
     
-    def query_free(self, x1, y1, x2, y2):
-        visited = np.full(self.grid.shape[:2], False)
-        def valid_square(y,x):
-            y_max = visited.shape[0] - 1
-            x_max = visited.shape[1] - 1
-            y_min = 0
-            x_min = 0
-            return y <= y_max and y >= y_min and x <= x_max and x >= x_min
+    # def query_free(self, x1, y1, x2, y2):
+    #     visited = np.full(self.grid.shape[:2], False)
+    #     def valid_square(y,x):
+    #         y_max = visited.shape[0] - 1
+    #         x_max = visited.shape[1] - 1
+    #         y_min = 0
+    #         x_min = 0
+    #         return y <= y_max and y >= y_min and x <= x_max and x >= x_min
         
-        path = LineString([(x1, y1), (x2, y2)])
+    #     path = LineString([(x1, y1), (x2, y2)])
         
-        y = math.floor(y1)
-        x = math.floor(x1)
-        queue = [[y,x]]
-        visited[y,x] = True
-        while len(queue) > 0:
-            y, x = queue.pop(0)
+    #     y = math.floor(y1)
+    #     x = math.floor(x1)
+    #     queue = [[y,x]]
+    #     visited[y,x] = True
+    #     while len(queue) > 0:
+    #         y, x = queue.pop(0)
             
-            if self.grid[y,x,0]:
-                return False
+    #         if self.grid[y,x,0]:
+    #             return False
             
-            if valid_square(y+1,x) and not visited[y+1,x] and path.intersects(LineString([(x, y+1), (x+1, y+1)])):
-                queue.append([y+1,x])
-                visited[y+1,x] = True
-            if valid_square(y-1,x) and not visited[y-1,x] and path.intersects(LineString([(x, y), (x+1, y)])):
-                queue.append([y-1,x])
-                visited[y-1,x] = True
-            if valid_square(y,x+1) and not visited[y,x+1] and path.intersects(LineString([(x+1, y), (x+1, y+1)])):
-                queue.append([y,x+1])
-                visited[y,x+1] = True
-            if valid_square(y,x-1) and not visited[y,x-1] and path.intersects(LineString([(x, y), (x, y+1)])):
-                queue.append([y,x-1])
-                visited[y,x-1] = True
+    #         if valid_square(y+1,x) and not visited[y+1,x] and path.intersects(LineString([(x, y+1), (x+1, y+1)])):
+    #             queue.append([y+1,x])
+    #             visited[y+1,x] = True
+    #         if valid_square(y-1,x) and not visited[y-1,x] and path.intersects(LineString([(x, y), (x+1, y)])):
+    #             queue.append([y-1,x])
+    #             visited[y-1,x] = True
+    #         if valid_square(y,x+1) and not visited[y,x+1] and path.intersects(LineString([(x+1, y), (x+1, y+1)])):
+    #             queue.append([y,x+1])
+    #             visited[y,x+1] = True
+    #         if valid_square(y,x-1) and not visited[y,x-1] and path.intersects(LineString([(x, y), (x, y+1)])):
+    #             queue.append([y,x-1])
+    #             visited[y,x-1] = True
                 
-        # went through all squares that intersect the line and did not find 
+    #     # went through all squares that intersect the line and did not find 
+    #     return True
+
+    def query_free(self, x1, y1, x2, y2):
+        # make sure x1 is on the left
+        if x1 > x2:
+            x1, y1, x2, y2 = x2, y2, x1, y1
+        # y = ax + b
+        a = (y2 - y1) / (x2 - x1)
+        b = y1 - x1 * a
+
+        start = int(math.floor(x1))
+        end = int(math.ceil(x2))
+
+        y_step = 1 if y1 < y2 else -1
+        floor = math.floor if y1 < y2 else math.ceil
+        ceil = math.floor if y1 < y2 else math.floor
+        for index, x_left in enumerate(range(start, end)):
+            x_right = x_left + 1
+            y_start = int(floor(a*x_left+b))
+            y_end = int(floor(a*x_right+b))
+            if index == 0:
+                y_start = int(floor(y1))
+            if index == end - start - 1:
+                y_end = int(ceil(y2))
+            y_list = list(range(y_start, y_end+y_step, y_step))
+            if y1 >= y2:
+                y_list = [y-1 for y in y_list]
+            for y in y_list:
+                if x_left >= self.grid.shape[0] or y >= self.grid.shape[1]:
+                    continue
+                if self.grid[x_left, y, 0]:
+                    return False
         return True
-        
+
+
+
     def fill_occupancy(self, robot_position, distance):
         data_changed = False
         

@@ -66,6 +66,7 @@ class Simulation():
                 ax.plot([self.path[i].x, self.path[i+1].x], [self.path[i].y, self.path[i+1].y], linewidth=0.75, color='y')
         
         
+        
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
