@@ -85,7 +85,7 @@ class Tree():
         for n in self.nodes:
             for child in n.children:
                 #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
-                ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
+                ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.5, color='y')
         
     def get_path_to_goal(self):
         if self.goal_node is None:
@@ -161,16 +161,16 @@ class Tree():
                     
     # adds node2 as a child of node1 and adds node2 as a parent of node1
     def add_connection(self, node1, node2):
-        # node1.children.append(node2)
+        node1.children.append(node2)
         node2.parent = node1
         node2.cost = node1.cost + node1.distance(node2)
         
     # removes node2 from the children of node1 and removes node1 as a parent of node2
     def remove_connection(self, node1, node2):
-        # for i in range(len(node1.children)):
-        #     if node1.children[i] == node2:
-        #         node1.children.pop(i)
-        #         break
+        for i in range(len(node1.children)):
+            if node1.children[i] == node2:
+                node1.children.pop(i)
+                break
             
         node2.parent = None
             
