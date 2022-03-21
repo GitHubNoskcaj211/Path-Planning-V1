@@ -56,6 +56,7 @@ class Tree():
         self.nodes = []
         self.rtree = index.Index()
         self.rtree_size = 0
+        self.num_obstacle_squares = 0
         self.fill_rtree_with_occupancy(occupancy_grid)
         
         self.radius = radius
@@ -64,6 +65,8 @@ class Tree():
         self.world_x_max = world_bounds[2]
         self.world_y_min = world_bounds[1]
         self.world_y_max = world_bounds[3]
+        
+        self.world_area = (self.world_x_max - self.world_x_min) * (self.world_y_max - self.world_y_min)
         
         self.random_point_x_min = max(self.world_x_min, start[0] - self.radius)
         self.random_point_x_max = min(self.world_x_max, start[0] + self.radius)
@@ -80,6 +83,8 @@ class Tree():
             self.rtree.insert(self.rtree_size, (min(x), min(y), max(x), max(y)), i)
             self.rtree_size += 1
             
+        self.num_obstacle_squares = self.rtree_size
+            
     def display(self, ax):
         x = []
         y = []
@@ -93,12 +98,10 @@ class Tree():
         ax.scatter(x,y, c='g')
         if self.goal_node != None:
             ax.scatter(self.goal_node.pos.x,self.goal_node.pos.y, marker="P", c='purple')
-        # for n in self.get_nearest_rtree_nodes(0, 0):
-        #     n = n.object
-        #     if type(n) == Node:
-        #         for child in n.children:
-        #             #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
-        #             ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
+        # for n in self.nodes:
+        #     for child in n.children:
+        #         #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
+        #         ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.25, color='b')
         
     def get_path_to_goal(self):
         if self.goal_node is None:
@@ -209,9 +212,7 @@ class Tree():
             i = i.object
             if type(i) == int:
                 node2 = self.nodes[i]
-                if node.distance(node2) > self.radius and len(nearest_nodes) > 1: # if we are outside of our connection radius, return what we found
-                    break
-                elif not clear_path(node, node2):
+                if not clear_path(node, node2):
                     continue
                 else: #we are within radius distance and we have a clear path, add it to a list
                     nearest_nodes.append(node2)
@@ -240,8 +241,9 @@ class Tree():
         return self.occupancy.query_obstacle(node.pos.x,node.pos.y)
     
     # returns the generator object for the whole rtree based on distance from the point given
-    def get_nearest_rtree_nodes(self, x, y):
-        return self.rtree.nearest((x,y,x,y), num_results=self.rtree_size, objects=True)
+    def get_nearest_rtree_nodes(self, x, y):        
+        # return sorted(list(self.rtree.intersection((x - self.radius,y - self.radius,x + self.radius,y + self.radius), objects=True)), key=lambda x: min)
+        return self.rtree.nearest((x,y,x,y), num_results = math.ceil(self.rtree_size * (self.radius ** 2 * math.pi / self.world_area)) + self.num_obstacle_squares, objects=True)
     
     def clear_tree(self):
         self.rtree = index.Index()

@@ -54,7 +54,7 @@ class Robot():
                 continue
             else:
                 if sector.intersection(obstacle).area > 0:
-                    cur_distance = obstacle.distance(p)
+                    cur_distance = obstacle.boundary.intersection(sector).distance(p)
                     if cur_distance < distance:
                         distance = cur_distance
                         
