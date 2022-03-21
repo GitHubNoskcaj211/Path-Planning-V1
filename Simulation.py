@@ -63,9 +63,9 @@ class Simulation():
         if self.path == None:
             return
         if len(self.path) > 0:
-            ax.plot([self.robot.position.x, self.path[0].x], [self.robot.position.y, self.path[0].y], linewidth=0.75, color='y')
+            ax.plot([self.robot.position.x, self.path[0].x], [self.robot.position.y, self.path[0].y], linewidth=2, color='y')
             for i in range(len(self.path) - 1):
-                ax.plot([self.path[i].x, self.path[i+1].x], [self.path[i].y, self.path[i+1].y], linewidth=0.75, color='y')
+                ax.plot([self.path[i].x, self.path[i+1].x], [self.path[i].y, self.path[i+1].y], linewidth=2, color='y')
         
     def build_initial_rrt(self):
         # while we cannot add the goal node

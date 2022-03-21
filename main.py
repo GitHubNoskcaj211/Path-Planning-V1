@@ -2,7 +2,9 @@ from Simulation import Simulation
 import random
 import math
 import time
-random.seed(120)
+# random.seed(0)
+# random.seed(120)
+random.seed(12498)
 
 # xmin, ymin, xmax, ymax
 world_bounds = (0,0,32,32)

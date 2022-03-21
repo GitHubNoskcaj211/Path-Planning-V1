@@ -88,10 +88,10 @@ class Tree():
     def display(self, ax):
         x = []
         y = []
-        for n in self.nodes:
-            if n != self.goal_node:
-                x.append(n.pos.x)
-                y.append(n.pos.y)
+        # for n in self.nodes:
+        #     if n != self.goal_node:
+        #         x.append(n.pos.x)
+        #         y.append(n.pos.y)
         
         # grid = sns.JointGrid(df['x'], df['y'], space=0, height=8, ratio=100)
         # grid.plot_joint(plt.scatter, color="g")
@@ -248,3 +248,4 @@ class Tree():
     def clear_tree(self):
         self.rtree = index.Index()
         self.rtree_size = 0
+        self.num_obstacle_squares = 0
