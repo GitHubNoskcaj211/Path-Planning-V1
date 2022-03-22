@@ -60,19 +60,19 @@ class OccupancyGrid():
         # y = ax + b
         a = (y2 - y1) / (x2 - x1)
         b = y1 - x1 * a
-        start = int(math.floor(x1))
-        end = int(math.ceil(x2))
+        start = int(x1)
+        end = int(x2+1)
         # floor = math.floor if y1 < y2 else math.ceil
         # ceil = math.floor if y1 < y2 else math.floor
         if y1 < y2:
             for index, x_left in enumerate(range(start, end)):
                 x_right = x_left + 1
-                y_start = int(math.floor(a*x_left+b))
-                y_end = int(math.floor(a*x_right+b))
+                y_start = int(a*x_left+b)
+                y_end = int(a*x_right+b)
                 if index == 0:
-                    y_start = int(math.floor(y1))
+                    y_start = int(y1)
                 if index == end - start - 1:
-                    y_end = int(math.floor(y2))
+                    y_end = int(y2)
                 y_list = list(range(y_start, y_end+1, 1))
                 for y in y_list:
                     if x_left >= self.grid.shape[0] or y >= self.grid.shape[1]:
@@ -84,12 +84,12 @@ class OccupancyGrid():
         if y1 >= y2:
             for index, x_left in enumerate(range(start, end)):
                 x_right = x_left + 1
-                y_start = int(math.floor(a*x_left+b))
-                y_end = int(math.floor(a*x_right+b))
+                y_start = int(a*x_left+b)
+                y_end = int(a*x_right+b)
                 if index == 0:
-                    y_start = int(math.floor(y1))
+                    y_start = int(y1)
                 if index == end - start - 1:
-                    y_end = int(math.floor(y2))
+                    y_end = int(y2)
                 y_list = list(range(y_start, y_end-1, -1))
                 for y in y_list:
                     if x_left >= self.grid.shape[0] or y >= self.grid.shape[1]:

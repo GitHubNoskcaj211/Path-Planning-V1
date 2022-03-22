@@ -1,8 +1,9 @@
+from math import sqrt
 import math
 import random
 import matplotlib.pyplot as plt
 import numpy as np
-from rtree import index
+from quads import QuadTree, BoundingBox
 
 class Point():        
     def __init__(self, x, y, theta = 0):
@@ -22,13 +23,13 @@ class Point():
         self.theta += point.theta
         
     def mag(self):
-        return math.sqrt((self.x) ** 2 + (self.y) ** 2)
+        return sqrt((self.x) ** 2 + (self.y) ** 2)
     
     def get_angle_towards(self, point):
         return math.atan2(point.y - self.y, point.x - self.x)
 
     def distance(self, point):
-        return math.sqrt((self.x - point.x) ** 2 + (self.y - point.y) ** 2)
+        return sqrt((self.x - point.x) ** 2 + (self.y - point.y) ** 2)
 
 class Node():
     def __init__(self, point, cost = None):
@@ -37,31 +38,39 @@ class Node():
         self.parent = None
         self.children = []
         self.nodes_index = -1
-        self.rtree_index = -1
+        
+    # for the quadtree to store our structure
+    def get_x(self):
+        return self.pos.x
+    
+    def get_y(self):
+        return self.pos.y
         
     def __str__(self):
-        s = 'Node ' + str(self.index) + ': ' + str(self.pos) + (' | Parent: ' + self.parent.index if self.parent != None else ' ') + 'Children: '
+        s = 'Node ' + str(self.nodes_index) + ': ' + str(self.pos) + (' | Parent: ' + self.parent.index if self.parent != None else ' ') + 'Children: '
         for n in self.children:
             s += ' ' + str(n.index)
             
         return s
         
     def distance(self, node2):
-        return math.sqrt((self.pos.x - node2.pos.x) ** 2 + (self.pos.y - node2.pos.y) ** 2)
+        return sqrt((self.pos.x - node2.pos.x) ** 2 + (self.pos.y - node2.pos.y) ** 2)
 
 class Tree():
     def __init__(self, start, radius, world_bounds, occupancy_grid):
-        self.nodes = []
-        self.rtree = index.Index()
-        self.rtree_size = 0
-        self.occupancy_grid = occupancy_grid
-        
-        self.radius = radius
+        self.debug = False
         
         self.world_x_min = world_bounds[0]
         self.world_x_max = world_bounds[2]
         self.world_y_min = world_bounds[1]
         self.world_y_max = world_bounds[3]
+        
+        self.nodes = []
+        self.quad_tree = QuadTree(((self.world_x_max - self.world_x_min) / 2.0, (self.world_y_max - self.world_y_min) / 2.0), (self.world_x_max - self.world_x_min), (self.world_y_max - self.world_y_min))
+        self.quad_tree_size = 0
+        self.occupancy_grid = occupancy_grid
+        
+        self.radius = radius
         
         self.world_area = (self.world_x_max - self.world_x_min) * (self.world_y_max - self.world_y_min)
         
@@ -70,22 +79,23 @@ class Tree():
         self.add_node(Node(Point(start[0], start[1]), 0))
         
     def display(self, ax):
-        x = []
-        y = []
-        # for n in self.nodes:
-        #     if n != self.goal_node:
-        #         x.append(n.pos.x)
-        #         y.append(n.pos.y)
-        
-        # grid = sns.JointGrid(df['x'], df['y'], space=0, height=8, ratio=100)
-        # grid.plot_joint(plt.scatter, color="g")
-        ax.scatter(x,y, c='g')
+        if self.debug:
+            x = []
+            y = []
+            for n in self.nodes:
+                if n != self.goal_node:
+                    x.append(n.pos.x)
+                    y.append(n.pos.y)
+            
+            ax.scatter(x,y, c='g')
+            
+            for n in self.nodes:
+                for child in n.children:
+                    #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
+                    ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.5, color='b')
+                    
         if self.goal_node != None:
             ax.scatter(self.goal_node.pos.x,self.goal_node.pos.y, marker="P", c='purple')
-        # for n in self.nodes:
-        #     for child in n.children:
-        #         #plt.arrow(x=n.pos.x, y=n.pos.y, dx=(child.pos.x - n.pos.x), dy=(child.pos.y - n.pos.y), width=0.05) 
-        #         ax.plot([n.pos.x, child.pos.x], [n.pos.y, child.pos.y], linewidth=0.5, color='y')
         
     def get_path_to_goal(self):
         if self.goal_node is None:
@@ -136,7 +146,7 @@ class Tree():
                 break
             
             n = next_nearest_node[0]
-            if n.cost + new_node.distance(n) < min_cost:
+            if n.cost + next_nearest_node[1] < min_cost:
                 best_parent = n
                 min_cost = best_parent.cost + next_nearest_node[1]
         self.add_connection(best_parent, new_node)
@@ -147,7 +157,7 @@ class Tree():
                 break
             
             n = next_nearest_node[0]
-            if new_node.cost + new_node.distance(n) < n.cost:
+            if new_node.cost + next_nearest_node[1] < n.cost:
                 self.remove_connection(n.parent, n)
                 self.add_connection(new_node, n)
                 
@@ -155,49 +165,49 @@ class Tree():
                     
     # adds node2 as a child of node1 and adds node2 as a parent of node1
     def add_connection(self, node1, node2):
-        # node1.children.append(node2)
+        if self.debug:
+            node1.children.append(node2)
         node2.parent = node1
-        node2.cost = node1.cost + node1.distance(node2)
+        node2.cost = node1.cost + sqrt((node1.pos.x - node2.pos.x) ** 2 + (node1.pos.y - node2.pos.y) ** 2)
         
     # removes node2 from the children of node1 and removes node1 as a parent of node2
     def remove_connection(self, node1, node2):
-        # for i in range(len(node1.children)):
-        #     if node1.children[i] == node2:
-        #         node1.children.pop(i)
-        #         break
+        if self.debug:
+            for i in range(len(node1.children)):
+                if node1.children[i] == node2:
+                    node1.children.pop(i)
+                    break
             
         node2.parent = None
             
     # adds a node to our node list and sets its index
     def add_node(self, node):
-        node.rtree_index = self.rtree_size
         node.nodes_index = len(self.nodes)
-        self.rtree.insert(node.rtree_index, (node.pos.x, node.pos.y, node.pos.x, node.pos.y), node.nodes_index)
-        self.rtree_size += 1
         self.nodes.append(node)
+        self.quad_tree.insert((node.pos.x, node.pos.y), data=node)
+        self.quad_tree_size += 1
     
     def get_nearest_nodes(self, node):
         nearest_nodes = []
         # look within our box first
-        for i in self.get_neighbors_in_box(node.pos.x, node.pos.y):
-            n = self.nodes[i.object]
-            if node.distance(n) <= self.radius:
+        for n in self.get_neighbors_in_box(node.pos.x, node.pos.y):
+            n = n.data
+            d = sqrt((node.pos.x - n.pos.x) ** 2 + (node.pos.y - n.pos.y) ** 2)
+            if d <= self.radius:
                 if self.clear_path(n, node): # move this check up
-                    nearest_nodes.append([n, n.distance(node)])
+                    nearest_nodes.append([n, d])
             
-        if len(nearest_nodes) != 0:
-            nearest_nodes = sorted(nearest_nodes, key=lambda x: x[1])
-            return nearest_nodes
+        if len(nearest_nodes) == 0:
+            # if there was nothing in our box look for nearest neighbors
+            for n in self.get_nearest_neighbors(node.pos.x, node.pos.y):
+                n = n.data
+                d = sqrt((node.pos.x - n.pos.x) ** 2 + (node.pos.y - n.pos.y) ** 2)
+                if d <= self.radius or len(nearest_nodes) == 0:
+                    if self.clear_path(n, node): # move this check up
+                        nearest_nodes.append([n, d])
+                elif len(nearest_nodes) > 0:
+                    break
         
-        # if there was nothing in our box look for nearest neighbors
-        for i in self.get_nearest_neighbors(node.pos.x, node.pos.y):
-            n = self.nodes[i.object]
-            if node.distance(n) <= self.radius or len(nearest_nodes) == 0:
-                if self.clear_path(n, node): # move this check up
-                    nearest_nodes.append([n, n.distance(node)])
-            elif len(nearest_nodes) > 0:
-                break
-            
         nearest_nodes = sorted(nearest_nodes, key=lambda x: x[1])
         return nearest_nodes
     
@@ -213,8 +223,8 @@ class Tree():
         if self.occupancy_grid is None:
             return False
         
-        y = math.floor(node.pos.y)
-        x = math.floor(node.pos.x)
+        y = int(node.pos.y)
+        x = int(node.pos.x)
         
         return self.occupancy_grid.query_obstacle(x,y)
     
@@ -225,17 +235,18 @@ class Tree():
         
         return self.occupancy_grid.query_free(node1.pos.x, node1.pos.y, node2.pos.x, node2.pos.y)
     
-    # returns the generator object for the whole rtree based all points in the bounding box
+    # returns the generator object for the whole quad tree based all points in the bounding box
     def get_neighbors_in_box(self, x, y):        
-        return self.rtree.intersection((x - self.radius,y - self.radius,x + self.radius,y + self.radius), objects=True)
+        return self.quad_tree.within_bb(BoundingBox(min_x=x - self.radius, min_y=y - self.radius, max_x=x + self.radius, max_y=y + self.radius))
     
-    # returns the generator object for the whole rtree based on distance
+    # returns the generator object for the quad tree based on distance
     def get_nearest_neighbors(self, x, y):        
-        return self.rtree.nearest((x,y,x,y), num_results = math.ceil(self.rtree_size * (self.radius ** 2 * math.pi / self.world_area)), objects=True)
-    # math.ceil(self.rtree_size * (self.radius ** 2 * math.pi / self.world_area))
+        return self.quad_tree.nearest_neighbors((x, y), count=2)
+    # math.ceil(self.quad_tree_size * (self.radius ** 2 * math.pi / self.world_area))
     
-    
-    def clear_tree(self):
+    def clear_tree(self, start):
         self.nodes = []
-        self.rtree = index.Index()
-        self.rtree_size = 0
+        self.quad_tree = QuadTree(((self.world_x_max - self.world_x_min) / 2.0, (self.world_y_max - self.world_y_min) / 2.0), (self.world_x_max - self.world_x_min), (self.world_y_max - self.world_y_min))
+        self.quad_tree_size = 0
+        
+        self.add_node(Node(Point(start[0], start[1]), 0))

@@ -68,7 +68,7 @@ class Simulation():
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
-            self.rrtree.build_tree(2000)
+            self.rrtree.build_tree(4000)
         
         self.path = self.rrtree.get_path_to_goal()
             
