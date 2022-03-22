@@ -18,7 +18,11 @@ for i in range(20):
 rrtree = Tree((start[0], start[1]), 3, world_bounds, occupancy)
 # rrtree.build_tree(4000)
 
-cProfile.run('rrtree.build_tree(2000)')
+def time():
+    for i in range(100):
+        rrtree.build_tree(2000)
+        rrtree.clear_tree()
+cProfile.run('time()')
 
 
 # new_node = rrtree.generate_random_node()
