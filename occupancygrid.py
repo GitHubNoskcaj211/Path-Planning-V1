@@ -60,32 +60,43 @@ class OccupancyGrid():
         # y = ax + b
         a = (y2 - y1) / (x2 - x1)
         b = y1 - x1 * a
-
         start = int(math.floor(x1))
         end = int(math.ceil(x2))
-
-        y_step = 1 if y1 < y2 else -1
-        floor = math.floor if y1 < y2 else math.ceil
-        ceil = math.floor if y1 < y2 else math.floor
-        for index, x_left in enumerate(range(start, end)):
-            x_right = x_left + 1
-            y_start = int(floor(a*x_left+b))
-            y_end = int(floor(a*x_right+b))
-            if index == 0:
-                y_start = int(floor(y1))
-            if index == end - start - 1:
-                y_end = int(ceil(y2))
-            y_list = list(range(y_start, y_end+y_step, y_step))
-            if y1 >= y2:
-                y_list = [y-1 for y in y_list]
-            for y in y_list:
-                if x_left >= self.grid.shape[0] or y >= self.grid.shape[1]:
-                    continue
-                if self.grid[x_left, y, 0]:
-                    return False
+        # floor = math.floor if y1 < y2 else math.ceil
+        # ceil = math.floor if y1 < y2 else math.floor
+        if y1 < y2:
+            for index, x_left in enumerate(range(start, end)):
+                x_right = x_left + 1
+                y_start = int(math.floor(a*x_left+b))
+                y_end = int(math.floor(a*x_right+b))
+                if index == 0:
+                    y_start = int(math.floor(y1))
+                if index == end - start - 1:
+                    y_end = int(math.floor(y2))
+                y_list = list(range(y_start, y_end+1, 1))
+                for y in y_list:
+                    if x_left >= self.grid.shape[0] or y >= self.grid.shape[1]:
+                        continue
+                    if self.grid[y, x_left, 0]:
+                        return False
+        #     if y1 >= y2:
+        #         y_list = [y for y in y_list]
+        if y1 >= y2:
+            for index, x_left in enumerate(range(start, end)):
+                x_right = x_left + 1
+                y_start = int(math.floor(a*x_left+b))
+                y_end = int(math.floor(a*x_right+b))
+                if index == 0:
+                    y_start = int(math.floor(y1))
+                if index == end - start - 1:
+                    y_end = int(math.floor(y2))
+                y_list = list(range(y_start, y_end-1, -1))
+                for y in y_list:
+                    if x_left >= self.grid.shape[0] or y >= self.grid.shape[1]:
+                        continue
+                    if self.grid[y, x_left, 0]:
+                        return False
         return True
-
-
 
     def fill_occupancy(self, robot_position, distance):
         data_changed = False
@@ -202,7 +213,7 @@ class OccupancyGrid():
             
         return Polygon(segment_vertices)
 
-    def display(self, ax):
+    def display(self, ax, pos, d):
         heatmap_fill = np.zeros(shape=self.grid.shape[:2])
         for i in range(self.grid.shape[0]):
             for j in range(self.grid.shape[1]):
@@ -216,3 +227,8 @@ class OccupancyGrid():
         
         sns.heatmap(heatmap_fill, linewidth=0.1, ax=ax, cbar=False, vmin=0, vmax=1, cmap='Greys')
         ax.invert_yaxis()
+        
+        if d != np.inf:
+            x, y = self.get_obstacle_arc(pos, d).coords.xy
+            ax.plot(x, y, color='green', alpha=1,
+            linewidth=3, solid_capstyle='round', zorder=2)

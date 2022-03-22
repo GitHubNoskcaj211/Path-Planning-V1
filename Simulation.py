@@ -64,13 +64,11 @@ class Simulation():
             ax.plot([self.robot.position.x, self.path[0].x], [self.robot.position.y, self.path[0].y], linewidth=0.75, color='y')
             for i in range(len(self.path) - 1):
                 ax.plot([self.path[i].x, self.path[i+1].x], [self.path[i].y, self.path[i+1].y], linewidth=0.75, color='y')
-        
-        
-        
+    
     def build_initial_rrt(self):
         # while we cannot add the goal node
         while not self.rrtree.add_goal_node(self.goal.x, self.goal.y):
-            self.rrtree.build_tree(750)
+            self.rrtree.build_tree(2000)
         
         self.path = self.rrtree.get_path_to_goal()
             
@@ -100,7 +98,9 @@ class Simulation():
     def display(self):
         self.ax.cla()
         
-        self.occupancy.display(self.ax)
+        sensor_distance = self.robot.get_sensor_distance(self.obstacles)
+        self.occupancy.display(self.ax, self.robot.position, sensor_distance)
+        
         self.plot_obstacles(self.ax)
 
         self.rrtree.display(self.ax)

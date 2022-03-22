@@ -18,7 +18,7 @@ for i in range(20):
 rrtree = Tree((start[0], start[1]), 3, world_bounds, occupancy)
 # rrtree.build_tree(4000)
 
-cProfile.run('rrtree.build_tree(1000)')
+cProfile.run('rrtree.build_tree(2000)')
 
 
 # new_node = rrtree.generate_random_node()
