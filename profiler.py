@@ -25,7 +25,6 @@ def time():
         
 cProfile.run('time()')
 
-
 # new_node = rrtree.generate_random_node()
 # while rrtree.node_in_obstacle(new_node):
 #     new_node = rrtree.generate_random_node()
